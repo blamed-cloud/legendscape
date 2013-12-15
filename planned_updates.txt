@@ -1,0 +1,81 @@
+Stuff to consider adding to legendscape:		(*: marks a neccesary update)	(+: marks an update that has been added)
+	-natures, perks or other bonuses to make units slightly different
+*	-a password set by each player to move to their turn
+*	-a command phase, where the player can:
++		-view the units hp (theirs, and the opponents that they know about)
+*		-view the base stats of all units, as well as what natures do
+		-buy more units (when that gets implemented) (units would appear the next turn, not the turn they are purchased)
+*	-an AI (for computer opponents, or randomly spawned aggressive monsters)
+*	-graphical display
+	-flanking bonus
+	-new units:
+		-siege units: (can attack walls)
+			-catapult
+			-ballista
+			-trebuchet
+		-suicide bomber
+		-shield wall	(lots of defense, possible counter-striking ability, maybe block line of sight)
+		-thief (loots more money from chests, maybe pickpocket enemies, and can go stealth mode)
+		larger/flying units:
+			-Dragons (L&F)
+			-Bear (L)
+			-Troll (L)
+			-Ogre (L)
+			-Serpent (L)
+			-griffon (F) (airstrike maybe)
+		-Necromancer
+			-animated corpse
+		-paladin (bonus atk against undead)
+	-area attacks & attacks that target squares not enemies
+		-new attack system, where you 'move' the attack, instead of numbers corresponding to units
+*	-gametype selection:
++		-number of players
++		-shroud on/off
++		-fog-of-war on/off
+		-conquest / siege / control / king defense / undead horde / ritual
+*			-conquest is two armies fighting until all units of opposing team are dead
+			-siege is one team in the castle, other team(s) is(are) trying to take/destroy the castle.
+*			-control would be like battlefront2, where there are outposts throughout the map, and you have to hold them (maybe all or just most) for x-number of turns and you win.
+			-king defense: teams would have a king-unit that is stronger, but if it dies, you lose the game.
+			-undead horde: player in castle, player (or computer) in graveyard with necromancer.
+			-ritual: one player is trying to complete a ritual, the other team is trying to stop them.
+	-new terrain: (number in paren's is move cost)
+		-forest(2)
+		-rocky(1)
+		-desert/sand(2)
+		-water(**) (**: movement stops upon entering)
+		-swamp(3)
+		-plains(1)
+		-lava(**) & lava stone(1)
+		-snow(2) & ice(3)
+	-terrain height and height adv.
+	-races:									(ALL STATS CHANGES ARE SUBJECT TO CHANGE)	(MINIMUM STATS: HP:5, MOVE:5, RANGE:1, ATK:1, DEF:0, COST:25)
+		-dwarf		(key unit: axeman)
+			-bonus on rocky tiles							(+2 def, +1 atk)
+			-bonus to hp and def							(+4 hp, +4 def)
+			-penalty to move								(-3 move)
+		-human		(key unit: swordsman, knight)
+			-bonus on plains								(+1 def, +1 move, +1 atk)
+			-no stat bonuses, but units are cheaper			(-25% cost)
+		-(wood) elf	(key unit: archer, marksman)
+			-bonus in forest								(+3 def, no move penalty)
+			-bonus to range, move, atk for ranged units		(+3 range, +2 move, +1 atk) (if base range > 5)  (also, no adj atk penalty)
+			-bonus to hp, move, atk, def for melee units	(+2 hp, +2 move, +1 atk, +1 def)
+			-units more expensive							(+25% cost)
+		-(high) elf (key unit: mage, wizard, swordmage)
+			-no terrain bonus
+			-bonus to all stats (ranged)					(+2 hp, +2 move, +4 range, +2 atk, +2 def)		(also, no adj atk/def penalty)
+			-bonus to all stats (melee)						(+4 hp, +2 move, +3 atk, +3 def)
+			-bonuses for swordmages							(+3 hp, +2 move, +2 range, +2 atk, +3 def)
+			-super expensive								(+50% cost)
+		-undead		(key unit: animated corpse, necromancer)
+			-bonus in swamp									(+3 atk, no move penalty)
+			-bonus to hp and atk							(+4 hp, +4 atk)
+			-penalty to def and move						(-2 def, -2 move)
+	-more generated structures ( some only for larger maps):
+		-river w/ bridges and possibly ships (L)
+		-big rooms w/ buildings in the middle.
+		-treasure chests w/ money or items if there is an item system
+		-castle for siege gametypes
+		-outposts for control gametypes
+		-caves (Dragon / Troll / Bear)

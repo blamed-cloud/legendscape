@@ -1,0 +1,107 @@
+LEGENDSCAPE-README
+created by:	Denver Woodward
+
+---------
+COMPILING
+---------
+
+On Linux, the command that I use is:
+	
+$ g++ -std=c++0x -o /path/to/outfile /path/to/source
+
+Where source would be '/path/legendscape-x.x.cpp' (x's represent version numbers)
+And outfile is the name of the executable you want to make. Usually '$HOME/bin/legendscape' or '$HOME/bin/legendscape-x.x'
+Then, if your $HOME/bin/ directory is in your path, you can run it with:
+
+$ legendscape
+
+or
+
+$ legendscape-x.x
+
+But, if you don't have bin in your path, you can run it with:
+
+$ ./legendscape
+
+or
+
+$ ./legendscape-x.x
+
+-----------
+HOW-TO-PLAY
+-----------
+
+Legendscape is a turn based strategy game where you buy units of different types to wage war against your opponent(s).
+Each time you play, the game will randomly generate a new map to play on.
+Below, I have a list of the different units and their stats, for reference.
+At the beginning of the game, you will select a couple of game options:
+1. Size of the Map
+	As of right now, this is acually a command-line argument:
+		$ legendscape-x.x
+		$ legendscape-x.x S
+			both create a standard small map: 22 x 80
+		$ legendscape-x.x M
+			creates a medium sized map: 30 x 100
+		$ legendscape-x.x L
+			creates a large map: 46 x 196
+		$ legendscape-x.x Y X
+			creates a custom map of: Y x X 
+	NOTE: if the map would be too large for the terminal window, it *should* shrink to fit the window.
+2. Number of players
+	Select the number of players you want to use. As of right now, support for 2, 3, or 4 players is enabled.
+3. Shroud on/off
+	If shroud is on, players will start with most of the map a mystery, and it will be uncovered as they explore.
+	If shroud is off, players know the terrain of the whole map from the start.
+4. Fog of War on/off
+	If Fog of War is on, the sections of map that the units are not currently looking at will be covered in fog, so they can see terrain but not enemy units.
+	If Fog of War is off, once a tile has been seen, it remains uncoverd, and you can see terrain as well as any units on the tile.
+
+Then, each team buys units in order: 1.BLUE, 2.RED, 3.GREEN, 4.YELLOW
+Then, the game progresses in turns (in the same order as above) until one team is victorious.
+On each turn, you have:
+1. First Move Phase
+	each unit you control can move up to their move-value.
+2. Attack Phase
+	each unit you control can attack once, if they have any viable attacks
+3. Second Move Phase
+	any units that have movement remaining, and that did not attack, can finish their move.
+4. End Phase
+	your turn is over. Play passes to the next player.
+Once only one team has units on the field, that team wins.
+
+-----------------
+Unit List & Stats
+-----------------
+
+AAB: Adjacent attack bonus
+ADB: Adjacent defense bonus
+LOS: Needs Line of Sight (for ranged attacks)
+
+Name & Char	|  HP	| Move	| Range	|  Atk	|  AAB	|  Def	|  ADB	| LOS	| Cost	|
+----------------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+Scout: 'S'	|  5	|  15	|  1	|  3	|  0	|  5	|  0	|  T	|  50	|
+----------------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+Swordsman: 'R'	|  12	|  8	|  1	|  6	|  0	|  6	|  0	|  T	|  100	|
+----------------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+Halberdier: 'H'	|  12	|  8	|  2	|  7	|  -1	|  4	|  0	|  T	|  100	|
+----------------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+Axeman: 'X'	|  15	|  7	|  1	|  8	|  0	|  3	|  0	|  T	|  100	|
+----------------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+Archer: 'A'	|  8	|  8	|  12	|  5	|  -1	|  5	|  -2	|  T	|  150	|
+----------------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+Mage: 'M'	|  7	|  8	|  8	|  6	|  -2	|  6	|  -4	|  F	|  150	|
+----------------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+Swordmage: 'D'	|  20	|  8	|  8	|  8	|  4	|  8	|  0	|  F	|  500	|
+----------------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+Knight: 'K'	|  25	|  7	|  1	|  7	|  0	|  8	|  4	|  T	|  500	|
+----------------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+Wizard: 'W'	|  10	|  8	|  12	|  10	|  -2	|  8	|  -3	|  F	|  500	|
+----------------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+Elf Archer: 'E'	|  10	|  10	|  15	|  8	|  -2	|  7	|  -2	|  T	|  500	|
+----------------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+Berserker: 'B'	|  30	|  10	|  1	|  16	|  0	|  0	|  2	|  T	|  500	|
+----------------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+Calvalry: 'C'	|  25	|  15	|  2	|  10	|  0	|  5	|  0	|  T	|  500	|
+----------------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+
+
