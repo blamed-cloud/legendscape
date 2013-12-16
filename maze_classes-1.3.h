@@ -9,8 +9,8 @@
 #include <time.h>
 #include <cmath>
 
-#include "unit_classes-1.2.2.h"
-#include "terrainclasses-1.2.2.h"
+#include "unit_classes-1.3.h"
+#include "terrainclasses-1.3.h"
 
 #define HP_S 0
 #define ATK_S 1
@@ -22,49 +22,6 @@
 #define CODE_RED 31
 #define CODE_GREEN 32
 #define CODE_YELLOW 33
-
-#ifdef _WIN32
-#include <conio.h>
-	char singlechar()
-	{
-		char key = _getchar();
-		return key;
-	}
-	void clearscreen()
-	{
-		for ( int c = 0 ; c < 49 ; c++ )
-		{
-			cout << endl;
-		}
-	}
-#else
-	char singlechar()
-	{
-		char buf = 0;
-		struct termios old = {0};
-		if (tcgetattr(0, &old) < 0)
-		        perror("tcsetattr()");
-		old.c_lflag &= ~ICANON;
-		old.c_lflag &= ~ECHO;
-		old.c_cc[VMIN] = 1;
-		old.c_cc[VTIME] = 0;
-		if (tcsetattr(0, TCSANOW, &old) < 0)
-		        perror("tcsetattr ICANON");
-		if (read(0, &buf, 1) < 0)
-		        perror ("read()");
-		old.c_lflag |= ICANON;
-		old.c_lflag |= ECHO;
-		if (tcsetattr(0, TCSADRAIN, &old) < 0)
-		        perror ("tcsetattr ~ICANON");
-		return (buf);
-	}
-	
-	void clearscreen()
-	{
-		cout << "\033[2J\033[1;1H";  //the [2J part clears the screen, whereas the [1;1H part puts the cursor at 1,1.
-					     //also, [31m is red, and [34m is blue, [0m is default color, and [4;#m will underline for #=31 or 34.
-	}
-#endif
 
 using namespace std;
 
@@ -1668,6 +1625,7 @@ protected:
 	bool atkphase;
 	bool fogofwar;
 	bool shroud;
+	bool moreunits;
 public:
 	Armies teams;
 	friend class Battlefield;
@@ -1677,13 +1635,14 @@ public:
 		
 	}
 	
-	Game_field(Labyrinth a,int numarmies, bool is_shroud=true, bool is_fog=true)
+	Game_field(Labyrinth a,int numarmies, bool is_shroud=true, bool is_fog=true, bool extraunits=false)
 	{
 		team_val=0;
 		unit_val=0;
 		atkphase=false;
 		fogofwar=is_fog;
 		shroud=is_shroud;
+		moreunits=extraunits;
 		rows=a.rows;
 		cols=a.cols;
 		Max=rows*cols;
@@ -2663,7 +2622,7 @@ protected:
 	vector<string> colornames;
 	vector<int> colorcodes;
 public:
-	Battlefield(int ysize=80, int xsize=22, int num_armies=2, int funds=2000,bool shroud=true, bool fog=true)
+	Battlefield(int ysize=80, int xsize=22, int num_armies=2, int funds=2000,bool shroud=true, bool fog=true, bool moreunits=false)
 	{
 		numarmies=num_armies;
 		turn=0;
@@ -2674,7 +2633,7 @@ public:
 		wincondition=0;
 		Dungeon_map field(ysize,xsize);
 		originalmap=field.get_map();
-		map=Game_field(originalmap,num_armies,shroud,fog);
+		map=Game_field(originalmap,num_armies,shroud,fog,moreunits);
 		colornames.push_back("Blue");
 		colorcodes.push_back(CODE_BLUE);
 		colornames.push_back("Red");
@@ -2780,34 +2739,120 @@ public:
 		clearscreen();
 	}
 
+	bool is_unit_char(char letter)
+	{
+		string allchars="sSrRhHxXaAmMdDkKwWeEbBcC";
+		for( int c = 0 ; c < allchars.size() ; c++ )
+		{
+			if (letter==allchars[c])
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	string passwordentry(bool prompt=true)
+	{
+		stringstream ss;
+		string next;
+		string pass="";
+		bool unf=true;
+		char f = ' ';
+		if (prompt)
+			cout << "Type the password:" << endl;
+		while (unf)
+		{
+			f=map.game_char();
+			if (f=='\n')
+			{
+				return pass;
+			}
+			else
+			{
+				ss << f;
+				ss >> next;
+				pass.append(next);
+			}
+		}
+	}
+	
 	Army buildarmy(Army team, string prompt="General")
 	{
 		char choice;
 		bool buying=true;
 		int count = 0;
 		string roster;
+		cls();
+		cout << prompt << ", You must set your password for future turns." << endl;
+		team.setpass();
 		while (buying)
 		{
+			cls();
 			roster = team.rollcall();
 			cout << prompt << ", you have: " << roster << endl;
 			cout << "and " << team.getmoney() << " dollars remaining." << endl;
-			cout << "Your options for units are:" << endl;
-			cout << "[S]cout:50, swo[R]dsman:100, [H]alberdier:100, a[X]eman:100," << endl;
-			cout << "[A]rcher:150, [M]age:150, swor[D]mage:500, [K]night:500," << endl;
-			cout << "[W]izard:500, [E]lf archer:500, [B]erserker:500, [C]alvalry:500" << endl;
-			cout << "What would you like to buy next > " << endl;
+			cout << "Your options for units are: (enter the char of the unit you would like)" << endl;
+			show_unit_stats();
+			cout << "What would you like to buy next? (press 'q' to stop buying units)" << endl;
 			choice = getch();
 			cout << choice << endl;
-			char2unit(choice);
-			warrior.resetsight();
-			team.buyunit(warrior);
-			if ((team.getmoney() < 50) || (team.size() == team.maxsize()))
+			if (is_unit_char(choice))
+			{
+				char2unit(choice);
+				warrior.resetsight();
+				team.buyunit(warrior);
+				if ((team.getmoney() < 50) || (team.size() == team.maxsize()))
+				{
+					buying=false;
+				}
+			}
+			else if (choice=='q')
 			{
 				buying=false;
 			}
-			cls();
 		}
 		return team;
+	}
+	
+	void buymoreunits()
+	{
+		char choice;
+		int k = turnmodnumarmies();
+		Army team = map.teams[k];
+		string prompt=getleadername(k);
+		bool buying=true;
+		int count = 0;
+		string roster;
+		while (buying)
+		{
+			cls();
+			roster=team.rollcall();
+			cout << prompt << ", you have: " << roster << endl;
+			cout << "and " << team.getmoney() << " dollars remaining." << endl;
+			cout << "Your options for units are: (enter the char of the unit you would like)" << endl;
+			show_unit_stats();
+			cout << "What would you like to buy next? (press 'q' to stop buying units)" << endl;
+			choice = getch();
+			cout << choice << endl;
+			if (is_unit_char(choice))
+			{
+				char2unit(choice);
+				warrior.resetsight();
+				warrior.resetattack();
+				warrior.resetmove();
+				team.buyreinforcements(warrior);
+				if ((team.getmoney() < 50) || (team.size() == team.maxsize()))
+				{
+					buying=false;
+				}
+			}
+			else if (choice=='q')
+			{
+				buying=false;
+			}
+		}
+		map.teams.setarmy(team,k);
 	}
 	
 	int num_btwn(int low=1, int high=10)
@@ -2912,6 +2957,35 @@ public:
 		}
 	}
 
+	void placereinforcements()
+	{
+		Army team;
+		Unit temp;
+		int x=0,y=0;
+		bool notplaced=true;
+		int k = turnmodnumarmies();
+		team = map.teams.getarmy(k);
+		for ( int c = 0 ; c < team.r_size() ; c++ )
+		{
+			notplaced=true;
+			temp = team.getreinforcement(c);
+			while (notplaced)
+			{
+				y=randcoor(0,k+1);
+				x=randcoor(1,k+1);
+				if ((map.terrainmap[y][x].getmapvalue()>0) && (map.terrainmap[y][x].isempty()))
+				{
+					map.terrainmap[y][x].setempty(false);
+					temp.setxcoor(x);
+					temp.setycoor(y);
+					notplaced=false;
+				}
+			}
+			team.setreinforcement(temp,c);
+		}
+		map.teams.setarmy(team, k);
+	}
+	
 	void resetall()
 	{
 		for ( int k = 0 ; k < map.teams.size() ; k++ )
@@ -2941,27 +3015,24 @@ public:
 		vector<int> unitsonscreen;
 		int enemies=0;
 		int numunits=0;
+		int index=0;
 		for (int j = 0 ; j < map.rows ; j++ )
 		{
 			for (int k = 0 ; k < map.cols ; k++)
 			{
 				if (!(map.terrainmap[j][k].isempty()))
 				{
-//					cout << "hello?" << endl;
 					if (map.terrainmap[j][k].getarmysight(player)==0)
 					{
-//						cout << "alrighty..." << endl;
 						map.coors2pos(j,k);
 						finddefender(map.postest,true,true);
 						if (defer_army!=player)
 						{
-//							cout << "enemy unit?" << endl;
 							unitsonscreen.push_back(map.postest);
 							enemies++;
 						}
 						else
 						{
-//							cout << "player's unit" << endl;
 							if (selection==1)
 							{
 								if (defender.canstillatk())
@@ -2992,14 +3063,15 @@ public:
 								unitsonscreen.push_back(map.postest);
 								numunits++;
 							}
+							if (numunits==1)
+							{
+								index=unitsonscreen.size()-1;
+							}
 						}
 					}
 				}
 			}
 		}
-//		cout << "done with for loop" << endl;
-//		cout << unitsonscreen.size() << endl;
-		int index=0;
 		char direction = 'e';
 		bool unf=true;
 		if (numunits==0)
@@ -3024,6 +3096,7 @@ public:
 		if ((selection==1) && (enemies==0))
 			return 0;
 		int return_val=1;
+		string leader=getleadername(player);
 		while (unf)
 		{
 			finddefender(unitsonscreen[index],true,true);
@@ -3032,12 +3105,15 @@ public:
 			cls();
 			map.dispm();
 			if (selection==1)
-				cout << "Attack Phase" << endl;
+				cout << leader << "'s turn: Attack Phase" << endl;
 			else if (selection==2)
-				cout << "First Move Phase	(press 'q' to quit this phase)" << endl;
+				cout << leader << "'s turn: First Move Phase	(press 'q' to quit this phase)" << endl;
 			else if (selection==3)
-				cout << "Second Move Phase	(press 'q' to quit this phase)" << endl;
+				cout << leader << "'s turn: Second Move Phase	(press 'q' to quit this phase)" << endl;
+			if (map.moreunits)
+				cout << "You have $" << map.teams[player].getmoney() << " dollars. To purchase reinforcements, press 'b'." << endl;
 			cout << "Press the left and right arrows to cycle through units. Press 's' to select unit." << endl;
+			cout << "Press 'u' to view the stat-chart for all the units." << endl;
 			if (showhp)
 			{
 				cout << "This " << defender.getname() << " has " << defender.currenthp() << "/" << defender.getstat(HP_S) << " HP remaining: ";
@@ -3056,6 +3132,16 @@ public:
 				index--;
 			else if (direction=='d')
 				index++;
+			else if (direction=='u')
+			{
+				show_unit_stats();
+				cout << "Press any key to continue." << endl;
+				getch();
+			}
+			else if ((direction=='b') && (map.moreunits))
+			{
+				buymoreunits();
+			}
 			if (index==-1)
 				index=unitsonscreen.size()-1;
 			else if (index==unitsonscreen.size())
@@ -3077,6 +3163,25 @@ public:
 	int turnmodnumarmies()
 	{
 		return turn % map.teams.size();
+	}
+	
+	void show_unit_stats()
+	{
+		cout << "Name & Char     | HP |Move|RNG |ATK |AAB |DEF |ADB |LOS |Cost|" << endl;
+		cout << "----------------|----|----|----|----|----|----|----|----|----|" << endl;
+		cout << "Scout: 'S'      |  5 | 15 |  1 |  3 |  0 |  5 |  0 |  T |  50|" << endl;
+		cout << "Swordsman: 'R'  | 12 |  8 |  1 |  6 |  0 |  6 |  0 |  T | 100|" << endl;
+		cout << "Halberdier: 'H' | 12 |  8 |  2 |  7 | -1 |  4 |  0 |  T | 100|" << endl;
+		cout << "Axeman: 'X'     | 15 |  7 |  1 |  8 |  0 |  3 |  0 |  T | 100|" << endl;
+		cout << "Archer: 'A'     |  8 |  8 | 12 |  5 | -1 |  5 | -2 |  T | 150|" << endl;
+		cout << "Mage: 'M'       |  7 |  8 |  8 |  6 | -2 |  6 | -4 |  F | 150|" << endl;
+		cout << "Swordmage: 'D'  | 20 |  8 |  8 |  8 |  4 |  8 |  0 |  F | 500|" << endl;
+		cout << "Knight: 'K'     | 25 |  7 |  1 |  7 |  0 |  8 |  4 |  T | 500|" << endl;
+		cout << "Wizard: 'W'     | 10 |  8 | 12 | 10 | -2 |  8 | -3 |  F | 500|" << endl;
+		cout << "Elf Archer: 'E' | 10 | 10 | 15 |  8 | -2 |  7 | -2 |  T | 500|" << endl;
+		cout << "Berserker: 'B'  | 30 | 10 |  1 | 16 |  0 |  0 |  2 |  T | 500|" << endl;
+		cout << "Calvalry: 'C'   | 25 | 15 |  2 | 10 |  0 |  5 |  0 |  T | 500|" << endl;
+		cout << "----------------|----|----|----|----|----|----|----|----|----|" << endl;
 	}
 	
 	void setfriendpos()
@@ -3236,6 +3341,11 @@ public:
 			map.terrainmap[defender.getycoor()][defender.getxcoor()].setempty(true);
 			map.teams.deadunitcleanup();
 			unitsleftperteam[defer_army]--;
+			int value = defender.getcost();
+			int reward = num_btwn(ceil(value * 0.05),floor(value * 0.30));
+			Army team = map.teams[k];
+			team.add_money(reward);
+			map.teams.setarmy(team,k);
 		}
 		map.resetspaces();
 		return 1;
@@ -3297,16 +3407,33 @@ public:
 	{
 		string tempstring="";
 		string leader;
+		string check="";
 		resetall();
 		for ( int k = 0 ; k < map.teams.size() ; k++)
 		{
 			if (map.teams[k].isplaying())
 			{
-				cls();
+				if (map.teams[k].aretherereinforcements())
+				{
+					placereinforcements();
+					Army team = map.teams[k];
+					team.sendinreinforcements();
+					map.teams.setarmy(team,k);
+				}
+					map.teams[k].sendinreinforcements();
 				leader=getleadername(k);
-				cout <<  leader << ", it is your turn." << endl;
-				cout << "Press enter to continue." << endl;
-				cin >> tempstring;
+				bool unf=true;
+				bool pass=false;
+				while (unf)
+				{
+					cls();
+					cout <<  leader << ", it is your turn." << endl;
+					cout << "Please enter your password to begin your turn: (it will not show up)" << endl;
+					check=passwordentry(false);
+					pass=map.teams[k].checkpass(check);
+					if (pass)
+						unf=false;
+				}
 				cls();
 				movephase();
 				cout << "done with move phase" << endl;

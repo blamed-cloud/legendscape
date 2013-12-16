@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 //#include "unit_classes.h"
-#include "maze_classes-1.2.2.h"
+#include "maze_classes-1.3.h"
 using namespace std;
 
 //////////////////////////////////////////////////////////
@@ -204,6 +204,7 @@ int main( int argc, char *argv[] )
 	int players=2;
 	bool shroud=true;
 	bool foggy=true;
+	bool units=false;
 	cout << "Welcome to Legendscape" << endl;
 	cout << "How many players are there? [2-4]" << endl;
 	cin >> players;
@@ -221,7 +222,12 @@ int main( int argc, char *argv[] )
 	cout << response1 << endl;
 	if ((response1=='n') || (response1=='N'))
 		foggy=false;
-	Battlefield steve(row1, col1, players, 2000, shroud, foggy);
+	cout << "Do you want to be able to purchase reinforcements? [y/N]" << endl;
+	char response2 = singlechar();
+	cout << response2 << endl;
+	if ((response2=='y') || (response2=='Y'))
+		units=true;
+	Battlefield steve(row1, col1, players, 2000, shroud, foggy, units);
 	steve.playthegame();
 	return 0;
 }

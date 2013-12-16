@@ -7,7 +7,51 @@
 #include <vector>
 #include <sstream>
 #include <time.h>
+
 using namespace std;
+
+#ifdef _WIN32
+#include <conio.h>
+	char singlechar()
+	{
+		char key = _getchar();
+		return key;
+	}
+	void clearscreen()
+	{
+		for ( int c = 0 ; c < 49 ; c++ )
+		{
+			cout << endl;
+		}
+	}
+#else
+	char singlechar()
+	{
+		char buf = 0;
+		struct termios old = {0};
+		if (tcgetattr(0, &old) < 0)
+		        perror("tcsetattr()");
+		old.c_lflag &= ~ICANON;
+		old.c_lflag &= ~ECHO;
+		old.c_cc[VMIN] = 1;
+		old.c_cc[VTIME] = 0;
+		if (tcsetattr(0, TCSANOW, &old) < 0)
+		        perror("tcsetattr ICANON");
+		if (read(0, &buf, 1) < 0)
+		        perror ("read()");
+		old.c_lflag |= ICANON;
+		old.c_lflag |= ECHO;
+		if (tcsetattr(0, TCSADRAIN, &old) < 0)
+		        perror ("tcsetattr ~ICANON");
+		return (buf);
+	}
+	
+	void clearscreen()
+	{
+		cout << "\033[2J\033[1;1H";  //the [2J part clears the screen, whereas the [1;1H part puts the cursor at 1,1.
+					     //also, [31m is red, and [34m is blue, [0m is default color, and [4;#m will underline for #=31 or 34.
+	}
+#endif
 
 class Scout;
 class Swordsman;
@@ -927,6 +971,9 @@ protected:
 	string colorname;
 	string armyname;
 	bool stillplaying;
+	string password;
+	bool units2bringin;
+	vector<Unit> reinforcements;
 	
 public:
 	Army(int dollars=2000)
@@ -944,6 +991,96 @@ public:
 	Unit operator [] (int index)
 	{
 		return unitarray[index];
+	}
+	
+	string passwordentry(bool prompt=true)
+	{
+		stringstream ss;
+		string pass="";
+		string next="";
+		bool unf=true;
+		char f = ' ';
+		if (prompt)
+			cout << "Type the password:" << endl;
+		while (unf)
+		{
+			f=game_char();
+			if (f=='\n')
+			{
+				return pass;
+			}
+			else
+			{
+				ss << f;
+				ss >> next;
+				pass.append(next);
+			}
+		}
+	}
+	
+	void setpass()
+	{
+		string initpass="";
+		string check="a";
+		while (check!=initpass)
+		{
+			cout << "Please enter a password for this army:" << endl;
+			initpass=passwordentry(false);
+			cout << "Please re-enter the password to double-check." << endl;
+			check=passwordentry(false);
+			if (check!=initpass)
+				cout << "Passwords didn't match, please try agian." << endl;
+		}
+		password=initpass;
+	}
+	
+	bool checkpass(string ispass)
+	{
+		if (ispass==password)
+			return true;
+		else
+			return false;
+	}
+	
+	char getch()
+	{
+		return singlechar();
+	}
+	
+	char game_char ()
+	{
+		int x = 'a';
+		char direc;
+		int f=getch();
+		if (f==27)
+		{
+			x=getch();
+			if (x==91)
+			{
+				x=getch();
+			}
+			switch(x)
+			{
+				case 65:
+					direc='w';
+					break;
+				case 68:
+					direc='a';
+					break;
+				case 67:
+					direc='d';
+					break;
+				case 66:
+					direc='s';
+			}
+	//		cout << "worked: " << x << endl;
+		}
+		else
+		{
+		direc=f;
+		}	
+	//	cout << direc << endl;
+		return (direc);
 	}
 	
 	void setplaying(bool still)
@@ -991,6 +1128,11 @@ public:
 		return colorcode;
 	}
 	
+	void add_money(int extra)
+	{
+		money=money + extra;
+	}
+	
 	string rollcall()
 	{
 		string str = "";
@@ -1021,6 +1163,48 @@ public:
 		return unitarray.size();
 	}
 	
+	void buyreinforcements(Unit recruit)
+	{
+		int price = recruit.getcost();
+		if (( price <= money) && (num_units < maxunits))
+		{
+			money = money - price;
+			reinforcements.push_back(recruit);
+			units2bringin = true;
+		}
+		else
+		{
+			cout << "You do not have enough money left for that unit." << endl;
+		}
+	}
+	
+	int r_size()
+	{
+		return reinforcements.size();
+	}
+	
+	void setreinforcement(Unit a, int c)
+	{
+		reinforcements[c]=a;
+	}
+	
+	Unit getreinforcement(int c)
+	{
+		return reinforcements[c];
+	}
+	
+	void sendinreinforcements()
+	{
+		Unit temp;
+		while (reinforcements.size() > 0)
+		{
+			temp = reinforcements[reinforcements.size()-1];
+			reinforcements.pop_back();
+			unitarray.push_back(temp);
+			num_units++;
+		}
+	}
+	
 	void buyunit( Unit recruit)
 	{
 		int price = recruit.getcost();
@@ -1034,6 +1218,11 @@ public:
 		{
 			cout << "You do not have enough money left for that unit" << endl;
 		}
+	}
+	
+	bool aretherereinforcements()
+	{
+		return units2bringin;
 	}
 	
 	void setunit(Unit a, int place)
@@ -1229,7 +1418,7 @@ public:
 	{
 		armyarray[k].setunit(a,c);
 	}
-	
+
 	Unit getcurrentunit()
 	{
 		return armyarray[current_team].getunit(current_unit);
