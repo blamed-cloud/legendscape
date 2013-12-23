@@ -7,11 +7,14 @@ class Terrain
 {
 protected:
 	int mapval;
+	int testval;
 	int movecost;
+	int textureval;
 	string repr;
 	string name;
 	bool empty;
 	vector<int> armyseen;
+	bool drawn;
 public:
 	Terrain(int numarmies, int mvalue=1, int mcost=1, bool is_shroud=true, bool is_fog=true)
 	{
@@ -36,26 +39,49 @@ public:
 		mapval=mvalue;
 		movecost=mcost;
 		empty=true;
+		testval=1;
+		drawn=false;
 		if (mapval==-1)
 		{
 			repr="|";
 			name="Wall";
-		}
-		else if (mapval==0)
-		{
-			repr=".";
-			name="Test";
+			testval=-1;
+			textureval=4;
 		}
 		else
 		{
 			repr=" ";
 			name="Plains";
+			textureval=0;
 		}
+	}
+	
+	int getTextureVal()
+	{
+		return textureval;
+	}
+	
+	int getTempTexture(int team)
+	{
+		if (armyseen[team]==2)
+			return 6;
+		else
+			return textureval;
 	}
 	
 	void setempty(bool val)
 	{
 		empty=val;
+	}
+	
+	bool isdrawn()
+	{
+		return drawn;
+	}
+	
+	void setdrawn(bool drew)
+	{
+		drawn=drew;
 	}
 	
 	bool isempty()
@@ -69,6 +95,16 @@ public:
 			empty=false;
 		else
 			empty=true;		
+	}
+	
+	void settestval(int test)
+	{
+		testval=test;
+	}
+	
+	int gettestval()
+	{
+		return testval;
 	}
 	
 	void setmapvalue(int mval)
@@ -99,7 +135,7 @@ public:
 	string tempshow(bool atk=false)
 	{
 		string name=repr;
-		if (mapval==0)
+		if (testval==0)
 		{
 			if (atk)
 			{
@@ -144,3 +180,4 @@ public:
 	}
 	
 };
+

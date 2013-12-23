@@ -1,3 +1,4 @@
+#include <SFML/Graphics.hpp>
 #include <unistd.h>
 #include <termios.h>
 #include <iostream>
@@ -9,8 +10,8 @@
 #include <time.h>
 #include <cmath>
 
-#include "unit_classes-1.3.h"
-#include "terrainclasses-1.3.h"
+#include "unit_classes-gt.h"
+#include "terrainclasses-gt.h"
 
 #define HP_S 0
 #define ATK_S 1
@@ -698,7 +699,7 @@ public:
 		return dir7;
 	}
 
-	void make_path()
+	virtual void make_path()
 	{
 		xcoor = xfin;
 		ycoor = yfin;
@@ -766,47 +767,6 @@ public:
 		--steps;
 	}
 	
-	char getch()
-	{
-		return singlechar();
-	}
-	
-	char game_char ()
-	{
-		int x = 'a';
-		char direc;
-		int f=getch();
-		if (f==27)
-		{
-			x=getch();
-			if (x==91)
-			{
-				x=getch();
-			}
-			switch(x)
-			{
-				case 65:
-					direc='w';
-					break;
-				case 68:
-					direc='a';
-					break;
-				case 67:
-					direc='d';
-					break;
-				case 66:
-					direc='s';
-			}
-	//		cout << "worked: " << x << endl;
-		}
-		else
-		{
-		direc=f;
-		}	
-	//	cout << direc << endl;
-		return (direc);
-	}
-	
 	void time_init()
 	{
 		time_s=0;
@@ -822,7 +782,7 @@ public:
 		maxsteps=max_moves;
 		movesused=0;
 		dispm(true,show_d,flag3);
-		char direction=game_char();
+		char direction=' ';
 		stringstream ss;
 		auto start = chrono::system_clock::now().time_since_epoch().count();
 		xcoor=xstart;
@@ -913,12 +873,11 @@ public:
 				first_move=false;
 				maze[ystart][xstart]=-9;
 			}
-			clear();
 			movesused=move_counter;
 			dispm(true,show_d,flag3);
 			if (unf)
 			{
-				direction=game_char();
+				direction=' ';
 			}
 //			echo(true);
 		}
@@ -946,20 +905,7 @@ public:
 	{
 		playername=name;
 	}
-	
-	void oldclear()
-	{
-		for ( int c = 0 ; c < 50 ; ++c)
-		{
-			cout << endl;
-		}
-	}
 
-	void clear()
-	{
-		clearscreen();
-	}
-	
 	void echo (bool flag=false, bool flag2=false)
 	{
 		if (flag2)
@@ -1615,9 +1561,118 @@ public:
 	}
 };
 
+class TileMap : public sf::Drawable, public sf::Transformable
+{
+private:
+
+	sf::VertexArray m_vertices;
+	sf::Texture m_tileset;
+	sf::Vector2u tileSize;
+	vector< vector <Terrain> > tiles;
+	int width;
+	int height;
+	
+	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const
+	{
+		// apply the transform
+		states.transform *= getTransform();
+		
+		// apply the tileset texture
+		states.texture = &m_tileset;
+		
+		// draw the vertex array
+		target.draw(m_vertices, states);
+	}
+	
+public:
+	void setTexture(sf::Texture texture)
+	{
+		m_tileset = texture;		
+	}
+	
+	void setTileSize(sf::Vector2u tile_size)
+	{
+		tileSize=tile_size;
+	}
+	
+	void settiles(vector< vector <Terrain> > t_map)
+	{
+		tiles=t_map;
+	}
+	
+	void setwidth(int columns)
+	{
+		width=columns;
+	}
+	
+	void setheight(int rows)
+	{
+		height=rows;
+	}
+
+	void resetdrawn()
+	{
+		for (int k = 0 ; k < tiles.size() ; k++ )
+		{
+			for (int c = 0 ; c < tiles[k].size() ; c++)
+			{
+				tiles[k][c].setdrawn(false);
+			}
+		}
+	}
+	
+	bool wasDrawn(int x, int y)
+	{
+		return tiles[y][x].isdrawn();
+	}
+	
+	void loadAll(int team = -1)
+	{
+		// resize the vertex array to fit the level size
+		m_vertices.setPrimitiveType(sf::Quads);
+		m_vertices.resize(width * height * 4);
+		
+		// populate the vertex array, with one quad per tile
+		for (unsigned int i = 0; i < width; ++i)
+		{
+			for (unsigned int j = 0; j < height; ++j)
+			{
+				// get the current tile number
+				int tileNumber=0;
+				if (team == -1)
+					tileNumber = tiles[j][i].getTextureVal();
+				else
+					tileNumber = tiles[j][i].getTempTexture(team);
+				tiles[j][i].setdrawn(true);
+				
+				// find its position in the tileset texture
+				int tu = tileNumber % (m_tileset.getSize().x / tileSize.x);
+				int tv = tileNumber / (m_tileset.getSize().x / tileSize.x);
+				
+				// get a pointer to the current tile's quad
+				sf::Vertex* quad = &m_vertices[(i + j * width) * 4];
+				
+				// define its 4 corners
+				quad[0].position = sf::Vector2f(i * tileSize.x, j * tileSize.y);
+				quad[1].position = sf::Vector2f((i + 1) * tileSize.x, j * tileSize.y);
+				quad[2].position = sf::Vector2f((i + 1) * tileSize.x, (j + 1) * tileSize.y);
+				quad[3].position = sf::Vector2f(i * tileSize.x, (j + 1) * tileSize.y);
+				
+				// define its 4 texture coordinates
+				quad[0].texCoords = sf::Vector2f(tu * tileSize.x, tv * tileSize.y);
+				quad[1].texCoords = sf::Vector2f((tu + 1) * tileSize.x, tv * tileSize.y);
+				quad[2].texCoords = sf::Vector2f((tu + 1) * tileSize.x, (tv + 1) * tileSize.y);
+				quad[3].texCoords = sf::Vector2f(tu * tileSize.x, (tv + 1) * tileSize.y);
+			}
+		}
+	}
+	
+};
+
 class Game_field: public Labyrinth
 {
 protected:
+	sf::Texture texture;
 	vector< vector <Terrain> > terrainmap;
 	Unit player;
 	int team_val;
@@ -1626,6 +1681,14 @@ protected:
 	bool fogofwar;
 	bool shroud;
 	bool moreunits;
+	int viewXMin, viewXMax, viewYMin, viewYMax;
+	int viewXNow, viewYNow;
+	TileMap tilemap;
+	sf::View mainScreen;
+	sf::View minimap;
+	sf::View textBox;
+	sf::Font font;
+	sf::Text mainText;
 public:
 	Armies teams;
 	friend class Battlefield;
@@ -1637,6 +1700,7 @@ public:
 	
 	Game_field(Labyrinth a,int numarmies, bool is_shroud=true, bool is_fog=true, bool extraunits=false)
 	{
+		texture.loadFromFile("tileset.png");
 		team_val=0;
 		unit_val=0;
 		atkphase=false;
@@ -1679,6 +1743,34 @@ public:
 			}
 			terrainmap.push_back(row); // Add the row to the main vector
 		}
+		//initialize the tilemap
+		tilemap.setTexture(texture);
+		tilemap.setTileSize(sf::Vector2u(32,32));
+		tilemap.settiles(terrainmap);
+		tilemap.setwidth(cols);
+		tilemap.setheight(rows);
+		tilemap.loadAll();
+		
+		//load the various viewpoints
+		minimap.reset(sf::FloatRect(0,0,cols*32,rows*32));
+		minimap.setViewport(sf::FloatRect(0.5f,0.f,.5f,.5f));
+		mainScreen.reset(sf::FloatRect(cols*32-512,rows*32-256,512,256));
+		sf::Vector2f vect = mainScreen.getCenter();
+		viewXMax = vect.x;
+		viewYMax = vect.y;
+		mainScreen.reset(sf::FloatRect(0,0,512,256));
+		vect = mainScreen.getCenter();
+		viewXMin = vect.x;
+		viewYMin = vect.y;
+		viewXNow= viewXMin;
+		viewYNow = viewYMin;
+		mainScreen.setViewport(sf::FloatRect(0.f,0.f,0.5f,0.5f));
+		textBox.reset(sf::FloatRect(0,0,1024,512));
+		textBox.setViewport(sf::FloatRect(0.f,.5f,1.f,.5f));
+		//load the font, and set the text class
+		font.loadFromFile("DroidSansMono.ttf");
+		mainText = sf::Text("",font,18);
+		mainText.setColor(sf::Color::Blue);
 	}
 	
 	void resetspaces(int fill=1)
@@ -1687,11 +1779,52 @@ public:
 		{
 			for ( int c = 0 ; c < cols ; c++ )
 			{
-				if (terrainmap[r][c].getmapvalue() >= 0)
+				if (terrainmap[r][c].gettestval() >= 0)
 				{
-					terrainmap[r][c].setmapvalue(fill);
+					terrainmap[r][c].settestval(fill);
 				}
 			}
+		}
+	}
+	
+	void temp_setsprites()
+	{
+		sf::Sprite sprite_red;
+		sprite_red.setTexture(texture);
+		sprite_red.setTextureRect(sf::IntRect(320,0,32,32));
+		sf::Sprite sprite_blue;
+		sprite_blue.setTexture(texture);
+		sprite_blue.setTextureRect(sf::IntRect(352,0,32,32));
+		for (int k = 0 ; k < teams.size() ; k++ )
+		{
+			Army team = teams.getarmy(k);
+			for (int c = 0 ; c < team.size() ; c++)
+			{
+				Unit temp = team.getunit(c);
+				if (k==0)
+					temp.setSprite(sprite_blue);
+				else
+					temp.setSprite(sprite_red);
+				team.setunit(temp,c);
+			}
+			teams.setarmy(team,k);
+		}
+	}
+	
+	void temp_movesprites()
+	{
+		for (int k = 0 ; k < teams.size() ; k++ )
+		{
+			Army team = teams.getarmy(k);
+			for (int c = 0 ; c < team.size() ; c++)
+			{
+				Unit temp = team.getunit(c);
+				sf::Sprite sprite = temp.getSprite();
+				sprite.setPosition(sf::Vector2f(temp.getxcoor()*32,temp.getycoor()*32));
+				temp.setSprite(sprite);
+				team.setunit(temp,c);
+			}
+			teams.setarmy(team,k);
 		}
 	}
 	
@@ -1701,14 +1834,14 @@ public:
 		{
 			if (zerosp == true)
 			{
-				if (terrainmap[ycoor2][xcoor2].getmapvalue() == 0)
+				if (terrainmap[ycoor2][xcoor2].gettestval() == 0)
 					pos_dir[dir] = 1;
 				else
 					pos_dir[dir] = 0;
 			}
 			else
 			{
-				if (terrainmap[ycoor2][xcoor2].getmapvalue() >= 0)
+				if (terrainmap[ycoor2][xcoor2].gettestval() >= 0)
 					pos_dir[dir] = 1;
 				else
 					pos_dir[dir] = 0;
@@ -1718,14 +1851,14 @@ public:
 		{
 			if (not_wall==true)
 			{
-				if (terrainmap[ycoor2][xcoor2].getmapvalue() != -1)
+				if (terrainmap[ycoor2][xcoor2].gettestval() != -1)
 					pos_dir[dir] = 1;
 				else
 					pos_dir[dir] = 0;
 			}
 			else
 			{
-				if (terrainmap[ycoor2][xcoor2].getmapvalue() >= -1)
+				if (terrainmap[ycoor2][xcoor2].gettestval() >= -1)
 					pos_dir[dir] = 1;
 				else
 					pos_dir[dir] = 0;
@@ -1733,7 +1866,7 @@ public:
 		}
 		else
 		{
-			if (terrainmap[ycoor2][xcoor2].getmapvalue() >= testfor)
+			if (terrainmap[ycoor2][xcoor2].gettestval() >= testfor)
 				pos_dir[dir] = 1;
 			else
 				pos_dir[dir] = 0;
@@ -1761,8 +1894,8 @@ public:
 		for (int c = 0 ; c < original.size() ; c++ )
 		{
 			pos2coors(original[c]);
-			if (terrainmap[ytest][xtest].getmapvalue()==1)
-				terrainmap[ytest][xtest].setmapvalue(0);
+			if (terrainmap[ytest][xtest].gettestval()==1)
+				terrainmap[ytest][xtest].settestval(0);
 		}
 		for (int c = 0 ; c < original.size() ; c++ )
 		{
@@ -1819,13 +1952,13 @@ public:
 							{
 								if (clearpath(y,x,y0,x0))
 								{
-									if ((targetwalls) || (terrainmap[y0][x0].getmapvalue() != -1))
+									if ((targetwalls) || (terrainmap[y0][x0].gettestval() != -1))
 									{
 										coors2pos(y0,x0);
 // 										atksqrs.push_back(postest);
-// 										if (terrainmap[y0][x0].getmapvalue()==1)
+// 										if (terrainmap[y0][x0].gettestval()==1)
 // 										{
-// 											terrainmap[y0][x0].setmapvalue(0);
+// 											terrainmap[y0][x0].settestval(0);
 // 										}
 										temp.push_back(postest);
 									}
@@ -1836,7 +1969,7 @@ public:
 						{
 							if (clearpath(y,x,y0,x0))
 							{
-								if ((targetwalls) || (terrainmap[y0][x0].getmapvalue() != -1))
+								if ((targetwalls) || (terrainmap[y0][x0].gettestval() != -1))
 								{
 									coors2pos(y0,x0);
 									temp.push_back(postest);
@@ -1851,7 +1984,7 @@ public:
 						{
 							if (terrainmap[y0][x0].getarmysight(team_val)==0)
 							{
-								if ((targetwalls) || (terrainmap[y0][x0].getmapvalue() != -1))
+								if ((targetwalls) || (terrainmap[y0][x0].gettestval() != -1))
 								{
 									coors2pos(y0,x0);
 									temp.push_back(postest);
@@ -1860,7 +1993,7 @@ public:
 						}
 						else
 						{
-							if ((targetwalls) || (terrainmap[y0][x0].getmapvalue() != -1))
+							if ((targetwalls) || (terrainmap[y0][x0].gettestval() != -1))
 							{
 								coors2pos(y0,x0);
 								temp.push_back(postest);
@@ -1874,9 +2007,9 @@ public:
 		for(int c = 0 ; c < atksqrs.size() ; c++ )
 		{
 			pos2coors(atksqrs[c]);
-			if (terrainmap[ytest][xtest].getmapvalue()==1)
+			if (terrainmap[ytest][xtest].gettestval()==1)
 			{
-				terrainmap[ytest][xtest].setmapvalue(0);
+				terrainmap[ytest][xtest].settestval(0);
 			}
 		}
 		
@@ -1900,6 +2033,88 @@ public:
 		{
 			return false;
 		}
+	}
+	
+	void make_path(int y0, int x0, int y1, int x1)
+	{
+		int temp;
+		
+		temp=xfin;
+		xfin=x1;
+		x1=temp;
+		
+		temp=yfin;
+		yfin=y1;
+		y1=temp;
+		
+		temp=xstart;
+		xstart=x0;
+		x0=temp;
+		
+		temp=ystart;
+		ystart=y0;
+		y0=temp;
+		
+		xcoor = xfin;
+		ycoor = yfin;
+		terrainmap[ycoor][xcoor].settestval(0);
+		int dir1;
+		int dir2;
+		int dir3;
+		int dir4;
+		int drctn = 1;
+		test_dirs(1,1);
+		while ((xcoor != xstart) || (ycoor != ystart))
+		{
+			if (pos_dir[1] == 1)
+				dir1 = terrainmap[ycoor - 1][xcoor].gettestval();
+			else
+				dir1 = 1000;
+			if (pos_dir[2] == 1)
+				dir2 = terrainmap[ycoor][xcoor + 1].gettestval();
+			else
+				dir2 = 1000;
+			if (pos_dir[3] == 1)
+				dir3 = terrainmap[ycoor + 1][xcoor].gettestval();
+			else
+				dir3 = 1000;
+			if (pos_dir[4] == 1)
+				dir4 = terrainmap[ycoor][xcoor - 1].gettestval();
+			else
+				dir4 = 1000;
+			drctn = min_p(dir1,dir2,dir3,dir4);
+			if (pos_dir[drctn] == 1)
+			{
+				switch(drctn)
+				{
+				case 1: //up
+					terrainmap[ycoor - 1][xcoor].settestval(0);
+					ycoor = ycoor - 1;
+					break;
+				case 2: //right
+					terrainmap[ycoor][xcoor + 1].settestval(0);
+					xcoor = xcoor + 1;
+					break;
+				case 3: //down
+					terrainmap[ycoor + 1][xcoor].settestval(0);
+					ycoor = ycoor + 1;
+					break;
+				case 4: //left
+					terrainmap[ycoor][xcoor - 1].settestval(0);
+					xcoor = xcoor - 1;
+					break;
+				}
+			}
+			test_dirs(1,1);
+			if (pos_dir[0] == 0)
+				ycoor = ystart, xcoor = xstart;
+		}
+		xcoor = xstart;
+		ycoor = ystart;
+		xstart=x0;
+		ystart=y0;
+		xfin=x1;
+		yfin=y1;		
 	}
 	
 	vector<int> contiguoussubset(vector<int> pos_list) // 0'th element of pos_list is starting point for subset.
@@ -1955,6 +2170,31 @@ public:
 		return connections;
 	}
 	
+	void movesqrs2distnums(int y0, int x0)
+	{
+		vector<int> squares;
+		coors2pos(y0,x0);
+		squares.push_back(postest);
+		for ( int i = 0 ; i < rows ; i++)
+		{
+			for ( int j = 0 ; j < cols ; j++ )
+			{
+				if(terrainmap[i][j].gettestval()==0)
+				{
+					coors2pos(i,j);
+					squares.push_back(postest);
+				}
+			}
+		}
+		vector<int> connects = contiguoussubset(squares);
+		for (int c = 0 ; c < squares.size() ; c++ )
+		{
+			pos2coors(squares[c]);
+			terrainmap[ytest][xtest].settestval(connects[c]);			
+		}
+		
+	}
+	
 	int moveablesqrs(int y, int x, int move, int flying=false)
 	{
 		if (flying)
@@ -1996,7 +2236,7 @@ public:
 				{
 					if (terrainmap[y0][x0].isempty())
 					{
-						if (terrainmap[y0][x0].getmapvalue()==1)
+						if (terrainmap[y0][x0].gettestval()==1)
 						{
 							coors2pos(y0,x0);
 							possiblemoves.push_back(postest);
@@ -2014,6 +2254,10 @@ public:
 			}
 		}
 		vector<int> stepstaken = contiguoussubset(possiblemoves);
+// 		for (int c = 0; c < stepstaken.size() ; c++ )
+// 		{
+// 			cout << "stepstaken[" << c << "] is: " << stepstaken[c] << endl;
+// 		}
 		for (int c = 1; c < possiblemoves.size() ; c++ )
 		{
 			if ((stepstaken[c] > 0) && (stepstaken[c] <=move))
@@ -2024,18 +2268,18 @@ public:
 					if (terrainmap[ytest][xtest].isempty())
 					{
 						movesqrs.push_back(possiblemoves[c]);
-						if (terrainmap[ytest][xtest].getmapvalue()==1)
+						if (terrainmap[ytest][xtest].gettestval()==1)
 						{
-							terrainmap[ytest][xtest].setmapvalue(0);
+							terrainmap[ytest][xtest].settestval(0);
 						}
 					}
 				}
 				else
 				{
 					movesqrs.push_back(possiblemoves[c]);
-					if (terrainmap[ytest][xtest].getmapvalue()==1)
+					if (terrainmap[ytest][xtest].gettestval()==1)
 					{
-						terrainmap[ytest][xtest].setmapvalue(0);
+						terrainmap[ytest][xtest].settestval(0);
 					}
 				}
 			}
@@ -2043,7 +2287,7 @@ public:
 		
 	}
 	
-	int moveablesqrs_recursive(int y, int x, int move, bool flying=false,int recursion=0)
+	int moveablesqrs_recursive(int y, int x, int move, bool flying=false,int recursion=0)		// not actually used.
 	{
 		if (flying)
 		{
@@ -2072,9 +2316,9 @@ public:
 			{
 				if (tempvec[1]==1)
 				{
-					if (terrainmap[y-1][x].getmapvalue()==1)
+					if (terrainmap[y-1][x].gettestval()==1)
 					{
-						terrainmap[y-1][x].setmapvalue(0);
+						terrainmap[y-1][x].settestval(0);
 					}
 					tempval++;
 					recursion++;
@@ -2082,9 +2326,9 @@ public:
 				}
 				if (tempvec[2]==1)
 				{
-					if (terrainmap[y][x+1].getmapvalue()==1)
+					if (terrainmap[y][x+1].gettestval()==1)
 					{
-						terrainmap[y][x+1].setmapvalue(0);
+						terrainmap[y][x+1].settestval(0);
 					}
 					tempval++;
 					recursion++;
@@ -2092,9 +2336,9 @@ public:
 				}
 				if (tempvec[3]==1)
 				{
-					if (terrainmap[y+1][x].getmapvalue()==1)
+					if (terrainmap[y+1][x].gettestval()==1)
 					{
-						terrainmap[y+1][x].setmapvalue(0);
+						terrainmap[y+1][x].settestval(0);
 					}
 					tempval++;
 					recursion++;
@@ -2102,9 +2346,9 @@ public:
 				}
 				if (tempvec[4]==1)
 				{
-					if (terrainmap[y][x-1].getmapvalue()==1)
+					if (terrainmap[y][x-1].gettestval()==1)
 					{
-						terrainmap[y][x-1].setmapvalue(0);
+						terrainmap[y][x-1].settestval(0);
 					}
 					tempval++;
 					recursion++;
@@ -2238,7 +2482,7 @@ public:
 		for ( int c = 1 ; c < pos2check.size() ; c++ )
 		{
 			pos2coors(pos2check[c]);
-			if (terrainmap[ytest][xtest].getmapvalue() == -1)
+			if (terrainmap[ytest][xtest].gettestval() == -1)
 			{
 				return false;
 			}
@@ -2293,7 +2537,7 @@ public:
 	
 	int echo_sqr(int y, int x)		// use terrainmap not maze	(done)
 	{
-		int ytest,xtest;
+		int ytest0,xtest0;
 		Unit a;
 		string output=" ";
 		bool under=false;
@@ -2317,15 +2561,15 @@ public:
 					for ( int c = 0 ; c < teams[k].size() ; c++ )
 					{
 						a=teams[k].getunit(c);
-						ytest=a.getycoor();
-						xtest=a.getxcoor();
+						ytest0=a.getycoor();
+						xtest0=a.getxcoor();
 						stringstream ss, ss1;
 						string temp, temp1;
 						ss << a.getrepr();
 						ss >> temp;
 						ss1 << teams[k].getcolorcode(); 
 						ss1 >> temp1;
-						if ((y==ytest) && (x==xtest) && (a.isalive()))
+						if ((y==ytest0) && (x==xtest0) && (a.isalive()))
 						{
 							if (under)
 							{
@@ -2363,6 +2607,81 @@ public:
 		{
 			cout << "Your " << playername << " is at: <" << xcoor << "," << ycoor << "> and has: " << maxsteps-movesused << "/" << maxsteps << " steps remaining." << endl;
 		}
+	}
+	
+	void setViewXY()
+	{
+		viewXNow = xcoor*32;
+		viewYNow = ycoor*32;
+		if (viewXNow<viewXMin)
+			viewXNow=viewXMin;
+		else if (viewXNow>viewXMax)
+			viewXNow=viewXMax;
+		if (viewYNow<viewYMin)
+			viewYNow=viewYMin;
+		else if (viewYNow>viewYMax)
+			viewYNow=viewYMax;
+	}
+	
+	void setText(sf::Text newtext)
+	{
+		mainText = newtext;
+	}
+	
+	void drawtowindow(sf::RenderWindow& windowRef) // draws the mainScreen, the minimap, and the textBox with whatever is set to be in them.
+	{						// for the mainScreen, draws with center: (xcoor, ycoor) unless invalid.
+		setViewXY();
+		tilemap.settiles(terrainmap);
+		tilemap.loadAll(team_val);
+		windowRef.clear(sf::Color::White);
+		
+		//main screen
+		mainScreen.setCenter(viewXNow,viewYNow);
+		windowRef.setView(mainScreen);
+		windowRef.draw(tilemap);
+		temp_movesprites();
+		for ( int k = 0 ; k < teams.size() ; k++ )
+		{
+			for ( int c = 0 ; c < teams[k].size() ; c++)
+			{
+				Unit temp = teams.getarmyunit(k,c);
+				int x = temp.getxcoor();
+				int y = temp.getycoor();
+				if (terrainmap[y][x].getarmysight(team_val)==0)
+				{
+					sf::Sprite sprite = temp.getSprite();
+				//	sprite.setPosition(sprite.getPosition() - sf::Vector2f(xBegin*32,yBegin*32));
+					windowRef.draw(sprite);
+				}
+			}
+		}
+		
+		//minimap
+		windowRef.setView(minimap);
+		windowRef.draw(tilemap);
+		for ( int k = 0 ; k < teams.size() ; k++ )
+		{
+			for ( int c = 0 ; c < teams[k].size() ; c++)
+			{
+				Unit temp = teams.getarmyunit(k,c);
+				int x = temp.getxcoor();
+				int y = temp.getycoor();
+				if (terrainmap[y][x].getarmysight(team_val)==0)
+				{
+					sf::Sprite sprite = temp.getSprite();
+				//	sprite.setPosition(sprite.getPosition() - sf::Vector2f(xBegin*32,yBegin*32));
+					windowRef.draw(sprite);
+				}
+			}
+		}
+		
+		//text
+		windowRef.setView(textBox);
+		windowRef.draw(mainText);
+		
+		//dsplay
+		windowRef.setView(windowRef.getDefaultView());
+		windowRef.display();
 	}
 	
 	void noendmovestack()
@@ -2446,7 +2765,7 @@ public:
 		}
 	}
 	
-	void play(bool quiet=false, bool start_stair=false, bool show_d=false, int max_moves=-1, bool flag3=false)	// change to use terrainmap	(done)
+	void old_play(bool quiet=false, bool start_stair=false, bool show_d=false, int max_moves=-1, bool flag3=false)	// change to use terrainmap	(done)
 	{
 		maxsteps=max_moves;
 		bool stacked=false;
@@ -2460,7 +2779,7 @@ public:
 		updatesight();
 		moveablesqrs(ycoor,xcoor,max_moves);
 		dispm(true,show_d,flag3);
-		char direction=game_char();
+		char direction=' ';
 		bool unf=true;
 		int move_counter=0;
 		while (unf)
@@ -2562,7 +2881,6 @@ public:
 					unf=false;
 				}
 			}
-			clear();
 			movesused=move_counter;
 			updatesight();
 			moveablesqrs(ycoor,xcoor,max_moves-move_counter);
@@ -2574,11 +2892,238 @@ public:
 			}
 			if (unf)
 			{
-				direction=game_char();
+				direction=' ';
 			}
 		}
 		movesused = move_counter;
 		updatesight();
+	}
+	
+	void play(int max_moves)
+	{
+		sf::RenderWindow window(sf::VideoMode(1600, 800), "Legendscape: Moving Unit");
+//		window.setKeyRepeatEnabled(false);
+		maxsteps=max_moves;
+		bool stacked=false;
+		bool out_flag=false;
+		movesused=0;
+		xcoor=xstart;
+		ycoor=ystart;
+		string moving_text;
+		player=teams.find_unit(ycoor,xcoor,true);
+		team_val=teams.getcurrentarmyval();
+		unit_val=teams.getcurrentunitval();
+		updatesight();
+		moveablesqrs(ycoor,xcoor,max_moves);
+		char direction=' ';
+		moving_text = "Your ";
+		moving_text += playername;
+		moving_text += " is at: <";
+		moving_text += num2str(xcoor);
+		moving_text += ",";
+		moving_text += num2str(ycoor);
+		moving_text += "> and has: ";
+		moving_text += num2str(maxsteps-movesused);
+		moving_text += "/";
+		moving_text += num2str(maxsteps);
+		moving_text += " steps remaining.";
+		mainText.setColor(teams[team_val].getColor());
+		mainText.setString(moving_text);
+		drawtowindow(window);
+		bool unf=true;
+		int move_counter=0;
+		while (unf)
+		{
+			direction=' ';
+			test_dirs(0,1,true,false);
+			nostackenemies();
+			if (max_moves-move_counter==1)
+			{
+				noendmovestack();
+			}
+			
+			//Event loop
+			sf::Event event;
+			while (window.pollEvent(event))
+			{
+				if (event.type == sf::Event::Closed)
+				{
+					if (stacked)
+					{
+						out_flag=true;
+					}
+					else
+					{
+						unf=false;
+						out_flag=false;
+					}
+				}
+				else if ( (event.type == sf::Event::KeyPressed) )
+				{
+					if ( (event.key.code == sf::Keyboard::Left) )
+					{
+						direction='a';
+					}
+					else if ( (event.key.code == sf::Keyboard::Up) )
+					{
+						direction='w';
+					}
+					if ( (event.key.code == sf::Keyboard::Right) )
+					{
+						direction='d';
+					}
+					if ( (event.key.code == sf::Keyboard::Down) )
+					{
+						direction='s';
+					}
+					if ( (event.key.code == sf::Keyboard::W) )
+					{
+						direction='w';
+					}
+					if ( (event.key.code == sf::Keyboard::S) )
+					{
+						direction='s';
+					}
+					if ( (event.key.code == sf::Keyboard::A) )
+					{
+						direction='a';
+					}
+					if ( (event.key.code == sf::Keyboard::D) )
+					{
+						direction='d';
+					}
+					if ( (event.key.code == sf::Keyboard::Q) )
+					{
+						direction='q';
+					}
+				}
+			}
+			//end event loop
+			
+			if ((direction=='w') && (pos_dir[1]==1))
+			{
+				terrainmap[ycoor][xcoor].setempty(true);
+				ycoor=ycoor-1;
+				if (terrainmap[ycoor][xcoor].isempty())
+				{
+					stacked=false;
+				}
+				else
+				{
+					stacked=true;
+				}
+				terrainmap[ycoor][xcoor].setempty(false);
+				player.setycoor(ycoor);
+				player.setxcoor(xcoor);
+				teams.setcurrentunit(player);
+				move_counter++;
+			}
+			if ((direction=='d') && (pos_dir[2]==1))
+			{
+				terrainmap[ycoor][xcoor].setempty(true);
+				xcoor=xcoor+1;
+				if (terrainmap[ycoor][xcoor].isempty())
+				{
+					stacked=false;
+				}
+				else
+				{
+					stacked=true;
+				}
+				terrainmap[ycoor][xcoor].setempty(false);
+				player.setycoor(ycoor);
+				player.setxcoor(xcoor);
+				teams.setcurrentunit(player);
+				move_counter++;
+			}
+			if ((direction=='s') && (pos_dir[3]==1))
+			{
+				terrainmap[ycoor][xcoor].setempty(true);
+				ycoor=ycoor+1;
+				if (terrainmap[ycoor][xcoor].isempty())
+				{
+					stacked=false;
+				}
+				else
+				{
+					stacked=true;
+				}
+				terrainmap[ycoor][xcoor].setempty(false);
+				player.setycoor(ycoor);
+				player.setxcoor(xcoor);
+				teams.setcurrentunit(player);
+				move_counter++;
+			}
+			if ((direction=='a') && (pos_dir[4]==1))
+			{
+				terrainmap[ycoor][xcoor].setempty(true);
+				xcoor=xcoor-1;
+				if (terrainmap[ycoor][xcoor].isempty())
+				{
+					stacked=false;
+				}
+				else
+				{
+					stacked=true;
+				}
+				terrainmap[ycoor][xcoor].setempty(false);
+				player.setycoor(ycoor);
+				player.setxcoor(xcoor);
+				teams.setcurrentunit(player);
+				move_counter++;
+			}
+			if (direction=='q')
+			{
+				if (stacked)
+				{
+					out_flag=true;
+				}
+				else
+				{
+					unf=false;
+					out_flag=false;
+				}
+			}
+			if (max_moves>0)
+			{
+				if (move_counter==max_moves)
+				{
+					unf=false;
+				}
+			}
+			movesused=move_counter;
+			updatesight();
+			moveablesqrs(ycoor,xcoor,max_moves-move_counter);
+			moving_text = "Your ";
+			moving_text += playername;
+			moving_text += " is at: <";
+			moving_text += num2str(xcoor);
+			moving_text += ",";
+			moving_text += num2str(ycoor);
+			moving_text += "> and has: ";
+			moving_text += num2str(maxsteps-movesused);
+			moving_text += "/";
+			moving_text += num2str(maxsteps);
+			moving_text += " steps remaining.";
+			if (out_flag)
+			{
+//				cout << "You may not end your movement with Units stacked." << endl;
+				moving_text += "\nYou may not end your movement with Units stacked.";
+				out_flag=false;
+			}
+			mainText.setString(moving_text);
+			drawtowindow(window);
+		}
+		movesused = move_counter;
+		updatesight();
+		window.close();
+	}
+	
+	string num2str(int num)
+	{
+		stringstream ss;
+		ss << num;
+		return ss.str();
 	}
 	
 	void set_start(int y,int x,bool erase=true)
@@ -2621,8 +3166,9 @@ protected:
 	int atker_army, defer_army, atker_unit, defer_unit;
 	vector<string> colornames;
 	vector<int> colorcodes;
+	vector<sf::Color> sfColors;
 public:
-	Battlefield(int ysize=80, int xsize=22, int num_armies=2, int funds=2000,bool shroud=true, bool fog=true, bool moreunits=false)
+	Battlefield(int ysize=80, int xsize=22, int num_armies=2, int funds=2000,bool shroud=true, bool fog=true, bool moreunits=false,int num_humans=-1)
 	{
 		numarmies=num_armies;
 		turn=0;
@@ -2636,18 +3182,24 @@ public:
 		map=Game_field(originalmap,num_armies,shroud,fog,moreunits);
 		colornames.push_back("Blue");
 		colorcodes.push_back(CODE_BLUE);
+		sfColors.push_back(sf::Color::Blue);
 		colornames.push_back("Red");
 		colorcodes.push_back(CODE_RED);
+		sfColors.push_back(sf::Color::Red);
 		colornames.push_back("Green");
 		colorcodes.push_back(CODE_GREEN);
+		sfColors.push_back(sf::Color::Green);
 		colornames.push_back("Yellow");
 		colorcodes.push_back(CODE_YELLOW);
+		sfColors.push_back(sf::Color::Yellow);
 		for ( int j = 0 ; j < numarmies ; j++ )
 		{
 			string leader=colornames[j] + " Team Leader";
 			temparmy = Army(funds);
-			temparmy = buildarmy(temparmy,leader);
 			temparmy.setcolorcode(colorcodes[j]);
+			temparmy.setColor(sfColors[j]);
+			temparmy.setpass(map.font);
+			temparmy = buildarmy(temparmy,leader);
 			unitsleftperteam.push_back(temparmy.size());
 			map.teams.add_army(temparmy);
 		}
@@ -2658,18 +3210,14 @@ public:
 			map.team_val=k;
 			map.updatesight();
 		}
+		map.temp_setsprites();
 	}
 	
 	string getleadername(int k)
 	{
 		return colornames[k] + " Team Leader";
 	}
-	
-	char getch()
-	{
-		return singlechar();
-	}
-	
+
 	void char2unit(char represent)
 	{
 		if ((represent == 's') || (represent == 'S'))
@@ -2734,11 +3282,13 @@ public:
 		}
 	}
 	
-	void cls()
+	string num2str(int num)
 	{
-		clearscreen();
+		stringstream ss;
+		ss << num;
+		return ss.str();
 	}
-
+	
 	bool is_unit_char(char letter)
 	{
 		string allchars="sSrRhHxXaAmMdDkKwWeEbBcC";
@@ -2752,89 +3302,263 @@ public:
 		return false;
 	}
 	
-	string passwordentry(bool prompt=true)
+	string passwordentry(string isprompt="Type the password:",sf::Color colour=sf::Color::Black)		//use SFML text		(done)
 	{
-		stringstream ss;
-		string next;
+		sf::RenderWindow window(sf::VideoMode(1000, 200), "Password Entry");
+		sf::Text prompt;
+		prompt.setFont(map.font);
+		prompt.setCharacterSize(32);
+		prompt.setColor(colour);
+		prompt.setString(isprompt);
 		string pass="";
-		bool unf=true;
-		char f = ' ';
-		if (prompt)
-			cout << "Type the password:" << endl;
-		while (unf)
+		while (window.isOpen())
 		{
-			f=map.game_char();
-			if (f=='\n')
+			sf::Event event;
+			while (window.pollEvent(event))
 			{
-				return pass;
+				if (event.type == sf::Event::Closed)
+				{
+					window.close();
+					return "password";
+				}
+				if (event.type == sf::Event::KeyPressed)
+				{
+					if (event.key.code == sf::Keyboard::Return)
+					{
+						window.close();
+						return pass;
+					}
+				}
+				else if (event.type == sf::Event::TextEntered)
+				{
+					if ( (event.text.unicode < 128) && (event.text.unicode > 31) )
+						pass += event.text.unicode;
+				}
 			}
-			else
-			{
-				ss << f;
-				ss >> next;
-				pass.append(next);
-			}
+			
+			window.clear(sf::Color::White);
+			window.draw(prompt);
+			window.display();
 		}
 	}
 	
-	Army buildarmy(Army team, string prompt="General")
+	Army buildarmy(Army team, string isprompt="General")		//use SFML text		(done)
 	{
+		sf::RenderWindow window(sf::VideoMode(1000, 600), "Army Building");
+		window.setKeyRepeatEnabled(false);
+		sf::Text prompt;
+		prompt.setFont(map.font);
+		prompt.setCharacterSize(24);
+		prompt.setColor(team.getColor());
 		char choice;
 		bool buying=true;
 		int count = 0;
 		string roster;
-		cls();
-		cout << prompt << ", You must set your password for future turns." << endl;
-		team.setpass();
+		string output;
+		int num_bought=0;
 		while (buying)
 		{
-			cls();
 			roster = team.rollcall();
-			cout << prompt << ", you have: " << roster << endl;
-			cout << "and " << team.getmoney() << " dollars remaining." << endl;
-			cout << "Your options for units are: (enter the char of the unit you would like)" << endl;
-			show_unit_stats();
-			cout << "What would you like to buy next? (press 'q' to stop buying units)" << endl;
-			choice = getch();
-			cout << choice << endl;
+			output = isprompt;
+			output += ", you have: "; 
+			output += roster;
+			output += "\nAnd ";
+			output += num2str(team.getmoney()); 
+			output += " dollars remaining.\n"; 
+			output += "Your options for units are: (enter the char of the unit you would like)\n";
+			output += show_unit_stats();
+			output += "What would you like to buy next? (press 'q' to stop buying units)";
+			prompt.setString(output);
+			
+			choice=' ';
+			
+			sf::Event event;
+			while (window.pollEvent(event))
+			{
+				if (event.type == sf::Event::Closed)
+				{
+					choice='q';
+				}
+				else if (event.type == sf::Event::KeyPressed)		//S R H X A M D K W E B C
+				{
+					if (event.key.code == sf::Keyboard::S)
+					{
+						choice='s';
+					}
+					else if (event.key.code == sf::Keyboard::R)
+					{
+						choice='r';
+					}
+					else if (event.key.code == sf::Keyboard::H)
+					{
+						choice='h';
+					}
+					else if (event.key.code == sf::Keyboard::X)
+					{
+						choice='x';
+					}
+					else if (event.key.code == sf::Keyboard::A)
+					{
+						choice='a';
+					}
+					else if (event.key.code == sf::Keyboard::M)
+					{
+						choice='m';
+					}
+					else if (event.key.code == sf::Keyboard::D)
+					{
+						choice='d';
+					}
+					else if (event.key.code == sf::Keyboard::K)
+					{
+						choice='k';
+					}
+					else if (event.key.code == sf::Keyboard::W)
+					{
+						choice='w';
+					}
+					else if (event.key.code == sf::Keyboard::E)
+					{
+						choice='e';
+					}
+					else if (event.key.code == sf::Keyboard::B)
+					{
+						choice='b';
+					}
+					else if (event.key.code == sf::Keyboard::C)
+					{
+						choice='c';
+					}
+					else if (event.key.code == sf::Keyboard::Q)
+					{
+						choice='q';
+					}
+				}
+			}
+			
+//			cout << choice << endl;
 			if (is_unit_char(choice))
 			{
 				char2unit(choice);
 				warrior.resetsight();
 				team.buyunit(warrior);
+				num_bought++;
 				if ((team.getmoney() < 50) || (team.size() == team.maxsize()))
 				{
 					buying=false;
 				}
 			}
-			else if (choice=='q')
+			else if ((choice=='q') && (num_bought>0))
 			{
 				buying=false;
 			}
+			
+			window.clear(sf::Color::White);
+			window.draw(prompt);
+			window.display();
 		}
 		return team;
 	}
 	
-	void buymoreunits()
+	void buymoreunits()	//use SFML text		(done)
 	{
 		char choice;
 		int k = turnmodnumarmies();
 		Army team = map.teams[k];
-		string prompt=getleadername(k);
+		string isprompt=getleadername(k);
+		sf::RenderWindow window(sf::VideoMode(400, 600), "Reinforcements");
+		window.setKeyRepeatEnabled(false);
+		sf::Text prompt;
+		prompt.setFont(map.font);
+		prompt.setCharacterSize(24);
+		prompt.setColor(team.getColor());
 		bool buying=true;
 		int count = 0;
 		string roster;
+		string output;
 		while (buying)
 		{
-			cls();
-			roster=team.rollcall();
-			cout << prompt << ", you have: " << roster << endl;
-			cout << "and " << team.getmoney() << " dollars remaining." << endl;
-			cout << "Your options for units are: (enter the char of the unit you would like)" << endl;
-			show_unit_stats();
-			cout << "What would you like to buy next? (press 'q' to stop buying units)" << endl;
-			choice = getch();
-			cout << choice << endl;
+			roster = team.rollcall();
+			roster += " + ";
+			roster += team.r_rollcal();
+			output = isprompt; 
+			output += ", you have: "; 
+			output += roster;
+			output += "\nAnd ";
+			output += num2str(team.getmoney()); 
+			output += " dollars remaining.";
+			output += "\nYour options for units are: (enter the char of the unit you would like)\n";
+			output += show_unit_stats();
+			output += "What would you like to buy next? (press 'q' to stop buying units)";
+			prompt.setString(output);
+			
+			choice=' ';
+			
+			sf::Event event;
+			while (window.pollEvent(event))
+			{
+				if (event.type == sf::Event::Closed)
+				{
+					choice='q';
+				}
+				else if (event.type == sf::Event::KeyPressed)		//S R H X A M D K W E B C
+				{
+					if (event.key.code == sf::Keyboard::S)
+					{
+						choice='s';
+					}
+					else if (event.key.code == sf::Keyboard::R)
+					{
+						choice='r';
+					}
+					else if (event.key.code == sf::Keyboard::H)
+					{
+						choice='h';
+					}
+					else if (event.key.code == sf::Keyboard::X)
+					{
+						choice='x';
+					}
+					else if (event.key.code == sf::Keyboard::A)
+					{
+						choice='a';
+					}
+					else if (event.key.code == sf::Keyboard::M)
+					{
+						choice='m';
+					}
+					else if (event.key.code == sf::Keyboard::D)
+					{
+						choice='d';
+					}
+					else if (event.key.code == sf::Keyboard::K)
+					{
+						choice='k';
+					}
+					else if (event.key.code == sf::Keyboard::W)
+					{
+						choice='w';
+					}
+					else if (event.key.code == sf::Keyboard::E)
+					{
+						choice='e';
+					}
+					else if (event.key.code == sf::Keyboard::B)
+					{
+						choice='b';
+					}
+					else if (event.key.code == sf::Keyboard::C)
+					{
+						choice='c';
+					}
+					else if (event.key.code == sf::Keyboard::Q)
+					{
+						choice='q';
+					}
+				}
+			}
+			
+			
 			if (is_unit_char(choice))
 			{
 				char2unit(choice);
@@ -2851,11 +3575,16 @@ public:
 			{
 				buying=false;
 			}
+			
+			window.clear(sf::Color::White);
+			window.draw(prompt);
+			window.display();
 		}
+		window.close();
 		map.teams.setarmy(team,k);
 	}
 	
-	int num_btwn(int low=1, int high=10)
+	int num_btwn(int low=1, int high=10)	// move to rand_number class
 	{
 		unsigned seed = chrono::system_clock::now().time_since_epoch().count();
 		minstd_rand0 rand (seed);
@@ -2929,7 +3658,7 @@ public:
 		}
 	}
 	
-	void placeunits()		// rewrite to use terrainmap  (done)
+	void placeunits()		// implement the rand_number class from test.cpp
 	{
 		Unit temp;
 		int x=0,y=0;
@@ -2944,7 +3673,7 @@ public:
 				{
 					y=randcoor(0,k+1);
 					x=randcoor(1,k+1);
-					if ((map.terrainmap[y][x].getmapvalue()>0) && (map.terrainmap[y][x].isempty()))
+					if ((map.terrainmap[y][x].gettestval()>0) && (map.terrainmap[y][x].isempty()))
 					{
 						map.terrainmap[y][x].setempty(false);
 						temp.setxcoor(x);
@@ -2956,8 +3685,8 @@ public:
 			}
 		}
 	}
-
-	void placereinforcements()
+	
+	void placereinforcements()	//rand_number class
 	{
 		Army team;
 		Unit temp;
@@ -2973,7 +3702,7 @@ public:
 			{
 				y=randcoor(0,k+1);
 				x=randcoor(1,k+1);
-				if ((map.terrainmap[y][x].getmapvalue()>0) && (map.terrainmap[y][x].isempty()))
+				if ((map.terrainmap[y][x].gettestval()>0) && (map.terrainmap[y][x].isempty()))
 				{
 					map.terrainmap[y][x].setempty(false);
 					temp.setxcoor(x);
@@ -2990,32 +3719,38 @@ public:
 	{
 		for ( int k = 0 ; k < map.teams.size() ; k++ )
 		{
-			cout << map.teams[k].isplaying();
+//			cout << map.teams[k].isplaying();
 			if (map.teams[k].isplaying())
 			{
-				cout << " " << k << ": ";
+//				cout << " " << k << ": ";
 				for ( int c = 0 ; c < map.teams[k].size() ; c++ )
 				{
-					cout << c <<"-";
+//					cout << c <<"-";
 					warrior = map.teams[k].getunit(c);
 					warrior.resetattack();
 					warrior.resetmove();
-					cout << warrior.getmovesleft() << ";";
+//					cout << warrior.getmovesleft() << ";";
 					map.teams.setarmyunit(warrior,k,c);
 				}
-				cout << endl;
+//				cout << endl;
 			}
 		}
-		cout << endl;
+//		cout << endl;
+	}
+	
+	int turnmodnumarmies()
+	{
+		return turn % map.teams.size();
 	}
 	
 	int selectunitonscreen(bool showhp = false, int selection=0)	//	selection: 0=none ; 1=units that can attack ; 2=units that haven't moved ; 3=second movephasae
-	{
+	{								//use SFML text		(done)
 		int player = turnmodnumarmies();
 		vector<int> unitsonscreen;
 		int enemies=0;
 		int numunits=0;
 		int index=0;
+		
 		for (int j = 0 ; j < map.rows ; j++ )
 		{
 			for (int k = 0 ; k < map.cols ; k++)
@@ -3025,10 +3760,11 @@ public:
 					if (map.terrainmap[j][k].getarmysight(player)==0)
 					{
 						map.coors2pos(j,k);
-						finddefender(map.postest,true,true);
+						int thispos = map.postest;
+						finddefender(thispos,true,true);
 						if (defer_army!=player)
 						{
-							unitsonscreen.push_back(map.postest);
+							unitsonscreen.push_back(thispos);
 							enemies++;
 						}
 						else
@@ -3037,16 +3773,15 @@ public:
 							{
 								if (defender.canstillatk())
 								{
-									unitsonscreen.push_back(map.postest);
+									unitsonscreen.push_back(thispos);
 									numunits++;
 								}
 							}
 							else if (selection==2)
 							{
-								cout << defender.getmovesleft() << ";" << defender.getstat(MOVE_S) << endl;
 								if (defender.getmovesleft()==defender.getstat(MOVE_S))
 								{
-									unitsonscreen.push_back(map.postest);
+									unitsonscreen.push_back(thispos);
 									numunits++;
 								}
 							}
@@ -3054,13 +3789,13 @@ public:
 							{
 								if (defender.getmovesleft() > 0)
 								{
-									unitsonscreen.push_back(map.postest);
+									unitsonscreen.push_back(thispos);
 									numunits++;
 								}
 							}
 							else
 							{
-								unitsonscreen.push_back(map.postest);
+								unitsonscreen.push_back(thispos);
 								numunits++;
 							}
 							if (numunits==1)
@@ -3085,7 +3820,6 @@ public:
 			{
 				map.setname(defender.getname());
 				map.set_start(defender.getycoor(),defender.getxcoor(),false);
-				cls();
 				return 1;
 			}
 			else
@@ -3097,46 +3831,102 @@ public:
 			return 0;
 		int return_val=1;
 		string leader=getleadername(player);
+		bool show_stats = false;
+		sf::RenderWindow window(sf::VideoMode(1600, 800), "Legendscape: Select Unit");
+		
+		//begin event loop
+		string output;
 		while (unf)
 		{
 			finddefender(unitsonscreen[index],true,true);
 			map.setname(defender.getname());
 			map.set_start(defender.getycoor(),defender.getxcoor(),false);
-			cls();
-			map.dispm();
+			//text displaying
+			output = leader;
 			if (selection==1)
-				cout << leader << "'s turn: Attack Phase" << endl;
+				output += "'s turn: Attack Phase (press 'q' to quit this phase)";
 			else if (selection==2)
-				cout << leader << "'s turn: First Move Phase	(press 'q' to quit this phase)" << endl;
+				output += "'s turn: First Move Phase (press 'q' to quit this phase)";
 			else if (selection==3)
-				cout << leader << "'s turn: Second Move Phase	(press 'q' to quit this phase)" << endl;
+				output += "'s turn: Second Move Phase (press 'q' to quit this phase)";
 			if (map.moreunits)
-				cout << "You have $" << map.teams[player].getmoney() << " dollars. To purchase reinforcements, press 'b'." << endl;
-			cout << "Press the left and right arrows to cycle through units. Press 's' to select unit." << endl;
-			cout << "Press 'u' to view the stat-chart for all the units." << endl;
+			{
+				output += "\nYou have $";
+				output += num2str(map.teams[player].getmoney());
+				output += " dollars. To purchase reinforcements, press 'b'.";
+			}
+			output += "\nPress the left and right arrows to cycle through units.\nPress enter to select unit.";
+			if (show_stats==false)
+				output += "\nPress 'u' to view the stat-chart for all the units.";
+			else
+			{
+				output += "\n";
+				output += show_unit_stats();
+			}
 			if (showhp)
 			{
-				cout << "This " << defender.getname() << " has " << defender.currenthp() << "/" << defender.getstat(HP_S) << " HP remaining: ";
-				cout << "[";
+				output += "\nThis ";
+				output += defender.getname();
+				output += " has ";
+				stringstream ss;
+				ss << defender.currenthp();
+				string temp = ss.str();
+				output += temp;
+				output += "/";
+				stringstream ss1;
+				ss1 << defender.getstat(HP_S);
+				string temp2 = ss1.str();
+				output += temp2;
+				output += " HP remaining: \n[";
 				for (int c = 0 ; c < defender.getstat(HP_S) ; c++ )
 				{
 					if (c < defender.currenthp())
-						cout << "=";
+						output += "=";
 					else
-						cout << " ";
+						output += " ";
 				}
-				cout << "]" << endl;
+				output += "]";
 			}
-			direction = map.game_char();
+			sf::Text thistext(output,map.font,24);
+			thistext.setColor(map.teams[player].getColor());
+			map.setText(thistext);
+			map.mainText.setColor(map.teams[player].getColor());
+			//end text
+			
+//			map.dispm();
+			map.drawtowindow(window);
+			direction=' ';
+			
+			sf::Event event;
+			while ( window.pollEvent(event) )
+			{
+				if (event.type == sf::Event::Closed)
+					direction='q';
+				else if (event.type == sf::Event::KeyPressed)
+				{
+					show_stats=false;
+					if ( (event.key.code == sf::Keyboard::A) || (event.key.code == sf::Keyboard::Left) )
+						direction='a';
+					if ( (event.key.code == sf::Keyboard::D) || (event.key.code == sf::Keyboard::Right) )
+						direction='d';
+					if (event.key.code == sf::Keyboard::U)
+						direction='u';
+					if (event.key.code == sf::Keyboard::B)
+						direction='b';
+					if (event.key.code == sf::Keyboard::Q)
+						direction='q';
+					if ( (event.key.code == sf::Keyboard::Return) || (event.key.code == sf::Keyboard::S) || (event.key.code == sf::Keyboard::Down) )
+						direction='s';
+				}
+			}
+			
 			if (direction=='a')
 				index--;
 			else if (direction=='d')
 				index++;
 			else if (direction=='u')
 			{
-				show_unit_stats();
-				cout << "Press any key to continue." << endl;
-				getch();
+				show_stats=true;
 			}
 			else if ((direction=='b') && (map.moreunits))
 			{
@@ -3157,31 +3947,29 @@ public:
 		finddefender(unitsonscreen[index],true,true);
 		map.setname(defender.getname());
 		map.set_start(defender.getycoor(),defender.getxcoor(),false);
+		window.close();
 		return return_val;
 	}
-	
-	int turnmodnumarmies()
+		
+	string show_unit_stats()		//use SFML text		(done)
 	{
-		return turn % map.teams.size();
-	}
-	
-	void show_unit_stats()
-	{
-		cout << "Name & Char     | HP |Move|RNG |ATK |AAB |DEF |ADB |LOS |Cost|" << endl;
-		cout << "----------------|----|----|----|----|----|----|----|----|----|" << endl;
-		cout << "Scout: 'S'      |  5 | 15 |  1 |  3 |  0 |  5 |  0 |  T |  50|" << endl;
-		cout << "Swordsman: 'R'  | 12 |  8 |  1 |  6 |  0 |  6 |  0 |  T | 100|" << endl;
-		cout << "Halberdier: 'H' | 12 |  8 |  2 |  7 | -1 |  4 |  0 |  T | 100|" << endl;
-		cout << "Axeman: 'X'     | 15 |  7 |  1 |  8 |  0 |  3 |  0 |  T | 100|" << endl;
-		cout << "Archer: 'A'     |  8 |  8 | 12 |  5 | -1 |  5 | -2 |  T | 150|" << endl;
-		cout << "Mage: 'M'       |  7 |  8 |  8 |  6 | -2 |  6 | -4 |  F | 150|" << endl;
-		cout << "Swordmage: 'D'  | 20 |  8 |  8 |  8 |  4 |  8 |  0 |  F | 500|" << endl;
-		cout << "Knight: 'K'     | 25 |  7 |  1 |  7 |  0 |  8 |  4 |  T | 500|" << endl;
-		cout << "Wizard: 'W'     | 10 |  8 | 12 | 10 | -2 |  8 | -3 |  F | 500|" << endl;
-		cout << "Elf Archer: 'E' | 10 | 10 | 15 |  8 | -2 |  7 | -2 |  T | 500|" << endl;
-		cout << "Berserker: 'B'  | 30 | 10 |  1 | 16 |  0 |  0 |  2 |  T | 500|" << endl;
-		cout << "Calvalry: 'C'   | 25 | 15 |  2 | 10 |  0 |  5 |  0 |  T | 500|" << endl;
-		cout << "----------------|----|----|----|----|----|----|----|----|----|" << endl;
+		string out;
+		out =  "Name & Char     | HP |Move|RNG |ATK |AAB |DEF |ADB |LOS |Cost|\n";
+		out += "----------------|----|----|----|----|----|----|----|----|----|\n";
+		out += "Scout:      'S' |  5 | 12 |  1 |  3 |  0 |  5 |  0 |  T |  50|\n";
+		out += "Swordsman:  'R' | 12 |  8 |  1 |  6 |  0 |  6 |  0 |  T | 100|\n";
+		out += "Halberdier: 'H' | 12 |  8 |  2 |  7 | -1 |  4 |  0 |  T | 100|\n";
+		out += "Axeman:     'X' | 15 |  7 |  1 |  8 |  0 |  3 |  0 |  T | 100|\n";
+		out += "Archer:     'A' |  8 |  8 | 12 |  5 | -1 |  5 | -2 |  T | 150|\n";
+		out += "Mage:       'M' |  7 |  8 |  8 |  6 | -2 |  6 | -4 |  F | 150|\n";
+		out += "Swordmage:  'D' | 20 |  8 |  8 |  8 |  4 |  8 |  0 |  F | 500|\n";
+		out += "Knight:     'K' | 25 |  7 |  1 |  7 |  0 |  8 |  4 |  T | 500|\n";
+		out += "Wizard:     'W' | 10 |  8 | 12 | 10 | -2 |  8 | -3 |  F | 500|\n";
+		out += "Elf Archer: 'E' | 10 | 10 | 15 |  8 | -2 |  7 | -2 |  T | 500|\n";
+		out += "Berserker:  'B' | 30 | 10 |  1 | 16 |  0 |  0 |  2 |  T | 500|\n";
+		out += "Calvalry:   'C' | 25 | 15 |  2 | 10 |  0 |  5 |  0 |  T | 500|\n";
+		out += "----------------|----|----|----|----|----|----|----|----|----|\n";
+		return out;
 	}
 	
 	void setfriendpos()
@@ -3232,27 +4020,31 @@ public:
 		return -1;
 	}
 	
-	int atkwithunit(int k, int c)		// rewrite to use terrainmap	(done) (maybe)
+	int atkwithunit(int k, int c)		//use SFML text		(done)
 	{
+		sf::RenderWindow window(sf::VideoMode(1600, 800), "Legendscape: Attacking");
 		vector<int> temp;
 		sqrs2atk = temp;
 		setfriendpos();
 		atker_army=k;
 		atker_unit=c;
 		int numatks=0;
-		int which=0;
+		int whichatk=0;
 		char attack=' ';
 		string prompt="";
 		int defendsqr=0;
 		warrior=map.teams[k].getunit(c);
 		prompt=getleadername(k);
+		string output;
 		if (!warrior.canstillatk())
 		{
-			cout << "This " << warrior.getname() << " can no longer attack this turn." << endl;
+//			cout << "This " << warrior.getname() << " can no longer attack this turn." << endl;
+			window.close();
 			return 0;
 		}
 		if (warrior.isdead())
 		{
+			window.close();
 			return 0;
 		}
 		map.setname(warrior.getname());
@@ -3270,43 +4062,123 @@ public:
 			}
 		}
 		numatks=sqrs2atk.size();
+		
+		map.mainText.setColor(map.teams[k].getColor());
+		
 		if (numatks>1)
 		{
-			map.dispm();
-			cout << prompt << ", this " << warrior.getname() << " has " << numatks << " possible attacks to make." << endl;
-			cout << "Please enter an integer corresping to which attack you want to make. [ 0 <= input <= " << numatks << " ]" << endl;
-			cout << "0 corresponds to not attacking this turn." << endl;
-			which=-1;
-			while (which==-1)
+			output = prompt;
+			output += ", this ";
+			output += warrior.getname();
+			output += " has ";
+			output += num2str(numatks);
+			output += " possible attacks to make.\n";
+			output += "Please enter an integer corresping to which attack you want to make. [ 0 <= input <= ";
+			output += num2str(numatks);
+			output += " ]\n0 corresponds to not attacking this turn.";
+			map.mainText.setString(output);
+			map.drawtowindow(window);
+			
+			whichatk=-1;
+			while (whichatk==-1)
 			{
-				cin >> which;
-				if (which==0)
+				//cin >> whichatk;
+				sf::Event event;
+				while (window.pollEvent(event))
+				{
+					if (event.type == sf::Event::Closed)
+						whichatk=0;
+					else if (event.type == sf::Event::KeyPressed)
+					{
+						if ( (event.key.code == sf::Keyboard::Num0) || (event.key.code == sf::Keyboard::Numpad0) )
+						{
+							whichatk=0;
+						}
+						else if ( (event.key.code == sf::Keyboard::Num1) || (event.key.code == sf::Keyboard::Numpad1) )
+						{
+							whichatk=1;
+						}
+						else if ( (event.key.code == sf::Keyboard::Num2) || (event.key.code == sf::Keyboard::Numpad2) )
+						{
+							whichatk=2;
+						}
+						else if ( (event.key.code == sf::Keyboard::Num3) || (event.key.code == sf::Keyboard::Numpad3) )
+						{
+							whichatk=3;
+						}
+						else if ( (event.key.code == sf::Keyboard::Num4) || (event.key.code == sf::Keyboard::Numpad4) )
+						{
+							whichatk=4;
+						}
+						else if ( (event.key.code == sf::Keyboard::Num5) || (event.key.code == sf::Keyboard::Numpad5) )
+						{
+							whichatk=5;
+						}
+						else if ( (event.key.code == sf::Keyboard::Num6) || (event.key.code == sf::Keyboard::Numpad6) )
+						{
+							whichatk=6;
+						}
+						else if ( (event.key.code == sf::Keyboard::Num7) || (event.key.code == sf::Keyboard::Numpad7) )
+						{
+							whichatk=7;
+						}
+						else if ( (event.key.code == sf::Keyboard::Num8) || (event.key.code == sf::Keyboard::Numpad8) )
+						{
+							whichatk=8;
+						}
+						else if ( (event.key.code == sf::Keyboard::Num9) || (event.key.code == sf::Keyboard::Numpad9) )
+						{
+							whichatk=9;
+						}
+					}
+				}
+				
+				if (whichatk==0)
 				{
 					map.resetspaces();
 					return 0;
 				}
-				which=which-1;
-				if (which>=numatks)
+				whichatk=whichatk-1;
+				if (whichatk>=numatks)
 				{
-					which=-1;
+					whichatk=-1;
 				}
-				if (which<0)
+				if (whichatk<0)
 				{
-					which=-1;
-				}				
+					whichatk=-1;
+				}
+				
+				map.drawtowindow(window);
 			}
-			defendsqr=sqrs2atk[which];
-
+			defendsqr=sqrs2atk[whichatk];
 		}
 		else if (numatks==1)
 		{
-			map.dispm();
 			attack='h';
-			cout << prompt << ", this " << warrior.getname() << " has 1 possible attack to make." << endl;
-			cout << "Do you want to attack? [Y/n]" << endl;
+			output = prompt;
+			output += ", this ";
+			output += warrior.getname();
+			output += " has 1 possible attack to make.\nDo you want to attack? [Y/n]";
+			map.mainText.setString(output);
+			map.drawtowindow(window);
 			while (attack=='h')
 			{
-				attack=getch();
+				sf::Event event;
+				while (window.pollEvent(event))
+				{
+					if (event.type == sf::Event::Closed)
+					{
+						attack='n';
+					}
+					else if (event.type == sf::Event::KeyPressed)
+					{
+						if (event.key.code == sf::Keyboard::N)
+							attack='n';
+						else if (event.key.code == sf::Keyboard::Y)
+							attack='y';
+					}
+				}
+				
 				if ((attack=='n')||(attack=='N'))
 				{
 					map.resetspaces();
@@ -3320,16 +4192,21 @@ public:
 				{
 					attack='h';
 				}
+				
+				map.drawtowindow(window);
 			}
 		}
 		else
 		{
-			cout << prompt << ", your " << warrior.getname() << " has no viable attacks." << endl;
+//			cout << prompt << ", your " << warrior.getname() << " has no viable attacks." << endl;
 			warrior.unsetattack();
 			map.teams.setarmyunit(warrior,atker_army,atker_unit);
 			map.resetspaces();
+			window.close();
 			return 0;
 		}
+		
+		window.close();
 		int armyval=finddefender(defendsqr);
 		bool dead = doattack();
 		warrior.setmovesleft(0);
@@ -3360,7 +4237,6 @@ public:
 		while (c < map.teams[k].size())
 		{
 			test=selectunitonscreen(true,1);
-			cls();
 			if (test==1)
 			{
 				atkwithunit(defer_army,defer_unit);
@@ -3374,15 +4250,36 @@ public:
 		map.setatkphase(false);
 	}
 	
-	void playthegame()
+	void playthegame()		//use SFML text		(done)
 	{
 		while (wincondition==0)
 		{
 			doallturns();
 		}
+		
+		sf::RenderWindow window(sf::VideoMode(200, 100), "THE END");
+		sf::Text prompt;
+		prompt.setFont(map.font);
+		prompt.setCharacterSize(24);
+		prompt.setColor(map.teams[wincondition-1].getColor());
 		string leader = getleadername(wincondition-1);
-		string output = "Congratulations, " + leader + ", you have vanquished the opposing Forces to win the game!";
-		cout << output << endl;
+		string output = "Congratulations, ";
+		output += leader;
+		output += ", you have vanquished the opposing Forces to win the game!";
+		prompt.setString(output);
+		while (window.isOpen())
+		{
+			sf::Event event;
+			while (window.pollEvent(event))
+			{
+				if (event.type == sf::Event::Closed)
+					window.close();
+			}
+			
+			window.clear(sf::Color::White);
+			window.draw(prompt);
+			window.display();
+		}
 	}
 	
 	void endphase()
@@ -3403,7 +4300,7 @@ public:
 		}
 	}
 	
-	void doallturns()
+	void doallturns()		//use SFML text		(done)
 	{
 		string tempstring="";
 		string leader;
@@ -3420,29 +4317,24 @@ public:
 					team.sendinreinforcements();
 					map.teams.setarmy(team,k);
 				}
-					map.teams[k].sendinreinforcements();
+//					map.teams[k].sendinreinforcements();
 				leader=getleadername(k);
 				bool unf=true;
 				bool pass=false;
 				while (unf)
 				{
-					cls();
-					cout <<  leader << ", it is your turn." << endl;
-					cout << "Please enter your password to begin your turn: (it will not show up)" << endl;
-					check=passwordentry(false);
+					string output = leader;
+					output += ", it is your turn.\nPlease enter your password to begin your turn: (it will not show up)";
+					check=passwordentry(output,map.teams[k].getColor());
 					pass=map.teams[k].checkpass(check);
 					if (pass)
 						unf=false;
 				}
-				cls();
 				movephase();
-				cout << "done with move phase" << endl;
-				cls();
 				attackphase();
 				endphase();
 				if (wincondition==0)
 				{
-					cls();
 					movephase(false);
 				}
 			}
@@ -3468,7 +4360,7 @@ public:
 		}
 	}
 	
-	bool doattack()
+	bool doattack()			//use SFML text		(done)
 	{
 		int atknum=0;
 		int defnum=0;
@@ -3483,48 +4375,142 @@ public:
 			defnum=defender.mydefdice();
 		}
 		int damage = atknum - defnum;
-		cout << "Your attacking " << warrior.getname() << " has rolled " << atknum << " hits." << endl;
+		string output = "Your attacking ";
+		output += warrior.getname();
+		output += " has rolled ";
+		output += num2str(atknum);
+		output += " hits.";
 		if (defnum==0)
 		{
-			cout << "And the defending " << defender.getname() << " didn't even block!" << endl;
+			output += "\nAnd the defending ";
+			output += defender.getname();
+			output += " didn't even block!";
 		}
 		else
 		{
-			cout << "However, the defending " << defender.getname() << " blocked " << defnum << " times." << endl;
+			output += "\nHowever, the defending ";
+			output += defender.getname();
+			output += " blocked ";
+			output += num2str(defnum);
+			output += " times.";
 		}
 		if (damage < 0)
 		{
 			damage=0;
 		}
-		cout << "Meaning that this attack resulted in " << damage << " damage to the opponent's " << defender.getname() << "." << endl;
+		output += "\nMeaning that this attack resulted in ";
+		output += num2str(damage);
+		output += " damage to the opponent's ";
+		output += defender.getname();
+		output += ".";
 		warrior.unsetattack();
 		if (damage > 0)
 		{
 			defender.dodamage(damage);
 			if (defender.isdead())
 			{
-				cout << "You killed the defending " << defender.getname() << "." << endl;
-				cout << "Press any key to continue." << endl;
-				getch();
-				cls();
-				return true;
+				output += "\nYou killed the defending ";
+				output += defender.getname();
+				output += ".\nPress any key to continue.";
 			}
 			else
 			{
-				cout << "The defending " << defender.getname() << " survived with " << defender.currenthp() << " health remaining." << endl;
-				cout << "Press any key to continue." << endl;
-				getch();
-				cls();
+				output += "\nThe defending ";
+				output += defender.getname();
+				output += " survived with ";
+				output += num2str(defender.currenthp());
+				output += " health remaining.\nPress any key to continue.";
 			}
 		}
 		else
 		{
-			cout << "The defending " << defender.getname() << " still has " << defender.currenthp() << " health remaining." << endl;
-			cout << "Press any key to continue." << endl;
-			getch();
-			cls();
+			output += "\nThe defending ";
+			output += defender.getname();
+			output += " still has ";
+			output += num2str(defender.currenthp());
+			output += " health remaining.\nPress any key to continue.";
 		}
-		return false;
+		
+		map.mainText.setString(output);
+		
+		sf::RenderWindow window(sf::VideoMode(1600, 800), "Legendscape: Damage");
+		
+		while (window.isOpen())
+		{
+			sf::Event event;
+			while (window.pollEvent(event))
+			{
+				if (event.type == sf::Event::Closed)
+				{
+					window.close();
+				}
+				else if (event.type == sf::Event::KeyPressed)
+				{
+					window.close();
+				}
+			}
+			map.drawtowindow(window);
+		}
+		return defender.isdead();
+	}
+	
+	void computermove()
+	{
+		int k = turnmodnumarmies();
+		map.team_val=k;
+		setfriendpos();
+		int ymove=-1;
+		int xmove=-1;
+		for (int c = 0 ; c < map.teams[k].size() ; c++ )
+		{
+			warrior=map.teams[k].getunit(c);
+			if ((warrior.isalive()) && (warrior.getmovesleft() > 0))
+			{
+				map.setname(warrior.getname());
+				map.set_start(warrior.getycoor(),warrior.getxcoor(),false);
+				map.setmaxsteps(warrior.getstat(MOVE_S));
+				map.moveablesqrs(warrior.getycoor(),warrior.getxcoor(),warrior.getstat(MOVE_S));
+				int target=-1;
+				for (int i = 0 ; i < map.rows ; i++)	// find an enemy unit in move range
+				{
+					for (int j = 0 ; j < map.cols ; j++)
+					{
+						if ( (map.terrainmap[i][j].gettestval()==0) && (!map.terrainmap[i][j].isempty()) )
+						{
+							map.coors2pos(i,j);
+							if (!isfriend(map.postest))
+							{
+								target=map.postest;
+							}
+						}
+					}
+				}
+				if (target!=-1)
+				{
+					for (int i = 0; i < map.rows ; i++)	// find an adjacent square next to enemy
+					{
+						for (int j = 0 ; j < map.cols ; j++)
+						{
+							if ( (map.terrainmap[i][j].gettestval()==0) && (map.terrainmap[i][j].isempty()) )
+							{
+								map.coors2pos(i,j);
+								if ( map.is_adjacent(target,map.postest) )
+								{
+									xmove=j;
+									ymove=i;
+								}
+							}
+						}	
+					}
+				}
+				else	//	find a good square to move to. (probably one closer to the center of the board)
+				{
+					
+				}
+				map.movesqrs2distnums(ymove,xmove);
+				
+			}
+		}
 	}
 	
 	void movephase(bool first=true)
@@ -3540,18 +4526,16 @@ public:
 		map.team_val=k;
 		while (c < map.teams[k].size())
 		{
-			cout << "selecting unit" << endl;
-			cout << select1 << endl;
+//			cout << "selecting unit" << endl;
+//			cout << select1 << endl;
 			trial=selectunitonscreen(true,select1);
-			cls();
 			warrior=defender;
 			if ( ((!warrior.isdead()) && (warrior.getmovesleft() > 0)) && (trial==1) )
 			{
 				map.setname(warrior.getname());
 				map.set_start(warrior.getycoor(),warrior.getxcoor(),false);
 				map.setmaxsteps(warrior.getstat(MOVE_S));
-				map.play(true, false, false, warrior.getmovesleft(),true);
-				cls();
+				map.play(warrior.getmovesleft());
 				warrior.setmovesleft(warrior.getmovesleft() - map.movesused);
 				warrior.setxcoor(map.xcoor);
 				warrior.setycoor(map.ycoor);
@@ -3563,21 +4547,5 @@ public:
 				c=map.teams[k].size();
 			}
 		}
-// 		for ( int c = 0 ; c < map.teams[k].size() ; c++)
-// 		{
-// 			warrior=map.teams[k].getunit(c);
-// 			if ((!warrior.isdead()) && (warrior.getmovesleft() > 0))
-// 			{
-// 				map.setname(warrior.getname());
-// 				map.set_start(warrior.getycoor(),warrior.getxcoor(),false);
-// 				map.setmaxsteps(warrior.getstat(MOVE_S));
-// 				map.play(true, false, false, warrior.getmovesleft(),true);
-// 				cls();
-// 				warrior.setmovesleft(warrior.getmovesleft() - map.movesused);
-// 				warrior.setxcoor(map.xcoor);
-// 				warrior.setycoor(map.ycoor);
-// 				map.teams.setarmyunit(warrior,k,c);
-// 			}
-// 		}
 	}
 };

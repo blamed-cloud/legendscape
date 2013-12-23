@@ -1,3 +1,4 @@
+#include <SFML/Graphics.hpp>
 #include <unistd.h>
 #include <termios.h>
 #include <iostream>
@@ -10,48 +11,6 @@
 
 using namespace std;
 
-#ifdef _WIN32
-#include <conio.h>
-	char singlechar()
-	{
-		char key = _getchar();
-		return key;
-	}
-	void clearscreen()
-	{
-		for ( int c = 0 ; c < 49 ; c++ )
-		{
-			cout << endl;
-		}
-	}
-#else
-	char singlechar()
-	{
-		char buf = 0;
-		struct termios old = {0};
-		if (tcgetattr(0, &old) < 0)
-		        perror("tcsetattr()");
-		old.c_lflag &= ~ICANON;
-		old.c_lflag &= ~ECHO;
-		old.c_cc[VMIN] = 1;
-		old.c_cc[VTIME] = 0;
-		if (tcsetattr(0, TCSANOW, &old) < 0)
-		        perror("tcsetattr ICANON");
-		if (read(0, &buf, 1) < 0)
-		        perror ("read()");
-		old.c_lflag |= ICANON;
-		old.c_lflag |= ECHO;
-		if (tcsetattr(0, TCSADRAIN, &old) < 0)
-		        perror ("tcsetattr ~ICANON");
-		return (buf);
-	}
-	
-	void clearscreen()
-	{
-		cout << "\033[2J\033[1;1H";  //the [2J part clears the screen, whereas the [1;1H part puts the cursor at 1,1.
-					     //also, [31m is red, and [34m is blue, [0m is default color, and [4;#m will underline for #=31 or 34.
-	}
-#endif
 
 class Scout;
 class Swordsman;
@@ -85,6 +44,7 @@ protected:
 	int movesleft;
 	bool canattack;
 	string name;
+	sf::Sprite sprite;
 	
 public:
 	
@@ -126,6 +86,16 @@ public:
 		name="Unit";
 	}
 
+	sf::Sprite getSprite()
+	{
+		return sprite;
+	}
+
+	void setSprite(sf::Sprite temp)
+	{
+		sprite=temp;
+	}
+	
 	void resetsight()
 	{
 		if (range>=move)
@@ -398,7 +368,7 @@ public:
 	{
 		a.totalhp=5;
 		a.hp=a.totalhp;
-		a.move=15;
+		a.move=12;
 		a.range=1;
 		a.atk=3;
 		a.def=5;
@@ -974,12 +944,15 @@ protected:
 	string password;
 	bool units2bringin;
 	vector<Unit> reinforcements;
+	bool computer;
+	sf::Color teamcolor;
 	
 public:
-	Army(int dollars=2000)
+	Army(int dollars=2000,bool isai=false)
 	{
 		startingfunds=dollars;
 		stillplaying=true;
+		computer=isai;
 		money=startingfunds;
 		num_units=0;
 		maxunits=20;
@@ -992,44 +965,76 @@ public:
 	{
 		return unitarray[index];
 	}
-	
-	string passwordentry(bool prompt=true)
+
+	void setColor(sf::Color colour)
 	{
-		stringstream ss;
+		teamcolor=colour;
+	}
+	
+	sf::Color getColor()
+	{
+		return teamcolor;
+	}
+	
+	bool iscomputer()
+	{
+		return computer;
+	}
+	
+	string passwordentry(sf::Font font, string isprompt="Type the password:")		//use SFML text		(done)
+	{
+		sf::RenderWindow window(sf::VideoMode(1000, 200), "Password Entry");
+		sf::Text prompt;
+		prompt.setFont(font);
+		prompt.setCharacterSize(32);
+		prompt.setColor(teamcolor);
+		prompt.setString(isprompt);
 		string pass="";
-		string next="";
-		bool unf=true;
-		char f = ' ';
-		if (prompt)
-			cout << "Type the password:" << endl;
-		while (unf)
+		while (window.isOpen())
 		{
-			f=game_char();
-			if (f=='\n')
+			sf::Event event;
+			while (window.pollEvent(event))
 			{
-				return pass;
+				if (event.type == sf::Event::Closed)
+				{
+					window.close();
+					return "password";
+				}
+				if (event.type == sf::Event::KeyPressed)
+				{
+					if (event.key.code == sf::Keyboard::Return)
+					{
+						window.close();
+						return pass;
+					}
+				}
+				else if (event.type == sf::Event::TextEntered)
+				{
+					if ( (event.text.unicode < 128) && (event.text.unicode > 31) )
+						pass += event.text.unicode;
+				}
 			}
-			else
-			{
-				ss << f;
-				ss >> next;
-				pass.append(next);
-			}
+			
+			window.clear(sf::Color::White);
+			window.draw(prompt);
+			window.display();
 		}
 	}
 	
-	void setpass()
+	void setpass(sf::Font font)
 	{
 		string initpass="";
 		string check="a";
+		string firstprompt="Please enter a password for this army:";
 		while (check!=initpass)
 		{
-			cout << "Please enter a password for this army:" << endl;
-			initpass=passwordentry(false);
-			cout << "Please re-enter the password to double-check." << endl;
-			check=passwordentry(false);
+//			cout << "Please enter a password for this army:" << endl;
+			initpass=passwordentry(font,firstprompt);
+//			cout << "Please re-enter the password to double-check." << endl;
+			check=passwordentry(font,"Please re-enter the password to double-check.");
+			firstprompt="Please enter a password for this army:";
 			if (check!=initpass)
-				cout << "Passwords didn't match, please try agian." << endl;
+				firstprompt = firstprompt + "\nPasswords didn't match, please try agian.";
 		}
 		password=initpass;
 	}
@@ -1040,47 +1045,6 @@ public:
 			return true;
 		else
 			return false;
-	}
-	
-	char getch()
-	{
-		return singlechar();
-	}
-	
-	char game_char ()
-	{
-		int x = 'a';
-		char direc;
-		int f=getch();
-		if (f==27)
-		{
-			x=getch();
-			if (x==91)
-			{
-				x=getch();
-			}
-			switch(x)
-			{
-				case 65:
-					direc='w';
-					break;
-				case 68:
-					direc='a';
-					break;
-				case 67:
-					direc='d';
-					break;
-				case 66:
-					direc='s';
-			}
-	//		cout << "worked: " << x << endl;
-		}
-		else
-		{
-		direc=f;
-		}	
-	//	cout << direc << endl;
-		return (direc);
 	}
 	
 	void setplaying(bool still)
@@ -1139,6 +1103,16 @@ public:
 		for ( int c = 0 ; c < num_units ; c++ )
 		{
 			str = str + unitarray[c].getrepr();
+		}
+		return str;
+	}
+	
+	string r_rollcal()
+	{
+		string str = "";
+		for ( int c = 0 ; c < reinforcements.size() ; c++ )
+		{
+			str = str + reinforcements[c].getrepr();
 		}
 		return str;
 	}
