@@ -1,6 +1,4 @@
 #include <SFML/Graphics.hpp>
-#include <unistd.h>
-#include <termios.h>
 #include <iostream>
 #include <string>
 #include <random>
@@ -364,8 +362,10 @@ public:
 // 		repr='S';
 // 	}
 	
-	Unit resetvalues(Unit a)
+	Unit resetvalues(Unit a, sf::Texture& texture, int xval)
 	{
+		a.sprite.setTexture(texture);
+		a.sprite.setTextureRect(sf::IntRect(xval,32,32,32));
 		a.totalhp=5;
 		a.hp=a.totalhp;
 		a.move=12;
@@ -413,8 +413,10 @@ public:
 // 		repr='R';
 // 	}
 	
-	Unit resetvalues(Unit a)
+	Unit resetvalues(Unit a, sf::Texture& texture, int xval)
 	{
+		a.sprite.setTexture(texture);
+		a.sprite.setTextureRect(sf::IntRect(xval,64,32,32));
 		a.totalhp=12;
 		a.hp=a.totalhp;
 		a.move=8;
@@ -462,8 +464,10 @@ public:
 // 		repr='H';
 // 	}
 	
-	Unit resetvalues(Unit a)
+	Unit resetvalues(Unit a, sf::Texture& texture, int xval)
 	{
+		a.sprite.setTexture(texture);
+		a.sprite.setTextureRect(sf::IntRect(xval,96,32,32));
 		a.totalhp=12;
 		a.hp=a.totalhp;
 		a.move=8;
@@ -511,8 +515,10 @@ public:
 // 		repr='X';
 // 	}
 	
-	Unit resetvalues(Unit a)
+	Unit resetvalues(Unit a, sf::Texture& texture, int xval)
 	{
+		a.sprite.setTexture(texture);
+		a.sprite.setTextureRect(sf::IntRect(xval,128,32,32));
 		a.totalhp=15;
 		a.hp=a.totalhp;
 		a.move=7;
@@ -560,8 +566,10 @@ public:
 // 		repr='A';
 // 	}
 	
-	Unit resetvalues(Unit a)
+	Unit resetvalues(Unit a, sf::Texture& texture, int xval)
 	{
+		a.sprite.setTexture(texture);
+		a.sprite.setTextureRect(sf::IntRect(xval,160,32,32));
 		a.totalhp=8;
 		a.hp=a.totalhp;
 		a.move=8;
@@ -609,8 +617,10 @@ public:
 // 		repr='M';
 // 	}
 	
-	Unit resetvalues(Unit a)
+	Unit resetvalues(Unit a, sf::Texture& texture, int xval)
 	{
+		a.sprite.setTexture(texture);
+		a.sprite.setTextureRect(sf::IntRect(xval,192,32,32));
 		a.totalhp=7;
 		a.hp=a.totalhp;
 		a.move=8;
@@ -658,8 +668,10 @@ public:
 // 		repr='D';
 // 	}
 	
-	Unit resetvalues(Unit a)
+	Unit resetvalues(Unit a, sf::Texture& texture, int xval)
 	{
+		a.sprite.setTexture(texture);
+		a.sprite.setTextureRect(sf::IntRect(xval,224,32,32));
 		a.totalhp=20;
 		a.hp=a.totalhp;
 		a.move=8;
@@ -707,8 +719,10 @@ public:
 // 		repr='K';
 // 	}
 	
-	Unit resetvalues(Unit a)
+	Unit resetvalues(Unit a, sf::Texture& texture, int xval)
 	{
+		a.sprite.setTexture(texture);
+		a.sprite.setTextureRect(sf::IntRect(xval,256,32,32));
 		a.totalhp=25;
 		a.hp=a.totalhp;
 		a.move=7;
@@ -756,8 +770,10 @@ public:
 // 		repr='W';
 // 	}
 	
-	Unit resetvalues(Unit a)
+	Unit resetvalues(Unit a, sf::Texture& texture, int xval)
 	{
+		a.sprite.setTexture(texture);
+		a.sprite.setTextureRect(sf::IntRect(xval,288,32,32));
 		a.totalhp=10;
 		a.hp=a.totalhp;
 		a.move=8;
@@ -805,8 +821,10 @@ public:
 // 		repr='E';
 // 	}
 	
-	Unit resetvalues(Unit a)
+	Unit resetvalues(Unit a, sf::Texture& texture, int xval)
 	{
+		a.sprite.setTexture(texture);
+		a.sprite.setTextureRect(sf::IntRect(xval,320,32,32));
 		a.totalhp=10;
 		a.hp=a.totalhp;
 		a.move=10;
@@ -854,8 +872,10 @@ public:
 // 		repr='B';
 // 	}
 	
-	Unit resetvalues(Unit a)
+	Unit resetvalues(Unit a, sf::Texture& texture, int xval)
 	{
+		a.sprite.setTexture(texture);
+		a.sprite.setTextureRect(sf::IntRect(xval,352,32,32));
 		a.totalhp=30;
 		a.hp=a.totalhp;
 		a.move=10;
@@ -903,8 +923,10 @@ public:
 // 		repr='C';
 // 	}
 	
-	Unit resetvalues(Unit a)
+	Unit resetvalues(Unit a, sf::Texture& texture, int xval)
 	{
+		a.sprite.setTexture(texture);
+		a.sprite.setTextureRect(sf::IntRect(xval,384,32,32));
 		a.totalhp=25;
 		a.hp=a.totalhp;
 		a.move=15;
@@ -981,9 +1003,9 @@ public:
 		return computer;
 	}
 	
-	string passwordentry(sf::Font font, string isprompt="Type the password:")		//use SFML text		(done)
+	string passwordentry(sf::RenderWindow& window, sf::Font font, string isprompt="Type the password:")		//use SFML text		(done)
 	{
-		sf::RenderWindow window(sf::VideoMode(1000, 200), "Password Entry");
+//		sf::RenderWindow window(sf::VideoMode(1000, 200), "Password Entry");
 		sf::Text prompt;
 		prompt.setFont(font);
 		prompt.setCharacterSize(32);
@@ -998,13 +1020,12 @@ public:
 				if (event.type == sf::Event::Closed)
 				{
 					window.close();
-					return "password";
+					return "ThEpLaYeRhAsQuIt";
 				}
 				if (event.type == sf::Event::KeyPressed)
 				{
 					if (event.key.code == sf::Keyboard::Return)
 					{
-						window.close();
 						return pass;
 					}
 				}
@@ -1021,7 +1042,7 @@ public:
 		}
 	}
 	
-	void setpass(sf::Font font)
+	int setpass(sf::RenderWindow& window, sf::Font font)
 	{
 		string initpass="";
 		string check="a";
@@ -1029,14 +1050,23 @@ public:
 		while (check!=initpass)
 		{
 //			cout << "Please enter a password for this army:" << endl;
-			initpass=passwordentry(font,firstprompt);
+			initpass=passwordentry(window,font,firstprompt);
+			if (initpass == "ThEpLaYeRhAsQuIt")
+			{
+				return -1;
+			}
 //			cout << "Please re-enter the password to double-check." << endl;
-			check=passwordentry(font,"Please re-enter the password to double-check.");
+			check=passwordentry(window,font,"Please re-enter the password to double-check.");
+			if (check == "ThEpLaYeRhAsQuIt")
+			{
+				return -1;
+			}
 			firstprompt="Please enter a password for this army:";
 			if (check!=initpass)
 				firstprompt = firstprompt + "\nPasswords didn't match, please try agian.";
 		}
 		password=initpass;
+		return 0;
 	}
 	
 	bool checkpass(string ispass)
