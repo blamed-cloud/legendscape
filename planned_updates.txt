@@ -37,12 +37,14 @@ Stuff to consider adding to legendscape:        (*: marks a neccesary update)   
             -animated corpse
         -paladin (bonus atk against undead)
     -area attacks & attacks that target squares not enemies
-*       -new attack system, where you 'move' the attack, instead of numbers corresponding to units
++       -new attack system, where you 'move' the attack, instead of numbers corresponding to units
 +   -gametype selection:
 +       -number of players
++       -map size
 +       -shroud ON/off
 +       -fog-of-war ON/off
 +       -reinforcements on/OFF
++       -amount of money
         -conquest / siege / control / king defense / undead horde / ritual
 +           -conquest is two armies fighting until all units of opposing team are dead
             -siege is one team in the castle, other team(s) is(are) trying to take/destroy the castle.

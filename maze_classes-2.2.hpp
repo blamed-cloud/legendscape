@@ -8,8 +8,8 @@
 #include <time.h>
 #include <cmath>
 
-#include "unit_classes-2.1.hpp"
-#include "terrainclasses-2.1.hpp"
+#include "unit_classes-2.2.hpp"
+#include "terrainclasses-2.2.hpp"
 
 #define HP_S 0
 #define ATK_S 1
@@ -1690,6 +1690,7 @@ protected:
 	sf::Sprite selectbox;
 	sf::Sprite selectmove;
 	sf::Sprite selectatk;
+	sf::Sprite fog;
 public:
 	Armies teams;
 	friend class Battlefield;
@@ -1706,6 +1707,9 @@ public:
 		selectbox.setTexture(texture);
 		selectmove.setTexture(texture);
 		selectatk.setTexture(texture);
+		fog.setTexture(texture);
+		fog.setTextureRect(sf::IntRect(64,0,32,32));
+		fog.setColor(sf::Color(255,255,255,128));
 		team_val=0;
 		unit_val=0;
 		atkphase=false;
@@ -1802,6 +1806,14 @@ public:
 		else if (team_val==1)
 		{
 			deltaX=0;
+		}
+		else if (team_val==2)
+		{
+			deltaX=192;
+		}
+		else if (team_val==3)
+		{
+			deltaX=288;
 		}
 		
 		selectbox.setTexture(texture);
@@ -2492,7 +2504,7 @@ public:
 		resetselections();
 		temp_movesprites();
 		
-		windowRef.clear(sf::Color::White);
+		windowRef.clear();
 		
 	//main screen
 		mainScreen.setCenter(viewXNow,viewYNow);
@@ -2521,7 +2533,7 @@ public:
 			}
 		}
 		
-		//draw circles and x's
+		//draw circles, fog, and x's
 		for ( int j = 0 ; j < rows ; j++ )
 		{
 			for (int k = 0 ; k < cols ; k++)
@@ -2538,6 +2550,11 @@ public:
 						selectmove.setPosition(sf::Vector2f(k*32,j*32));
 						windowRef.draw(selectmove);
 					}
+				}
+				else if (terrainmap[j][k].getarmysight(team_val)==1)
+				{
+					fog.setPosition(sf::Vector2f(k*32,j*32));
+					windowRef.draw(fog);
 				}
 			}
 		}
@@ -2568,7 +2585,7 @@ public:
 			}
 		}
 		
-		//draw circles and x's
+		//draw circles, fog, and x's
 		for ( int j = 0 ; j < rows ; j++ )
 		{
 			for (int k = 0 ; k < cols ; k++)
@@ -2585,6 +2602,11 @@ public:
 						selectmove.setPosition(sf::Vector2f(k*32,j*32));
 						windowRef.draw(selectmove);
 					}
+				}
+				else if (terrainmap[j][k].getarmysight(team_val)==1)
+				{
+					fog.setPosition(sf::Vector2f(k*32,j*32));
+					windowRef.draw(fog);
 				}
 			}
 		}
@@ -2781,31 +2803,31 @@ public:
 					{
 						direction='w';
 					}
-					if ( (event.key.code == sf::Keyboard::Right) )
+					else if ( (event.key.code == sf::Keyboard::Right) )
 					{
 						direction='d';
 					}
-					if ( (event.key.code == sf::Keyboard::Down) )
+					else if ( (event.key.code == sf::Keyboard::Down) )
 					{
 						direction='s';
 					}
-					if ( (event.key.code == sf::Keyboard::W) )
+					else if ( (event.key.code == sf::Keyboard::W) )
 					{
 						direction='w';
 					}
-					if ( (event.key.code == sf::Keyboard::S) )
+					else if ( (event.key.code == sf::Keyboard::S) )
 					{
 						direction='s';
 					}
-					if ( (event.key.code == sf::Keyboard::A) )
+					else if ( (event.key.code == sf::Keyboard::A) )
 					{
 						direction='a';
 					}
-					if ( (event.key.code == sf::Keyboard::D) )
+					else if ( (event.key.code == sf::Keyboard::D) )
 					{
 						direction='d';
 					}
-					if ( (event.key.code == sf::Keyboard::Q) )
+					else if ( (event.key.code == sf::Keyboard::Q) )
 					{
 						direction='q';
 					}
@@ -2980,6 +3002,7 @@ protected:
 	vector<string> colornames;
 	vector<sf::Color> sfColors;
 	bool gameover;
+	random_number rand;
 public:
 	Battlefield(sf::RenderWindow& window,int ysize=80, int xsize=22, int num_armies=2, int funds=2000,bool shroud=true, bool fog=true, bool moreunits=false,int num_humans=-1)
 	{
@@ -3043,6 +3066,14 @@ public:
 		if (unitcolor == sf::Color::Blue)
 		{
 			x_sprite=32;
+		}
+		else if (unitcolor == sf::Color::Green)
+		{
+			x_sprite=64;
+		}
+		else if (unitcolor == sf::Color::Yellow)
+		{
+			x_sprite=96;
 		}
 		
 		if ((represent == 's') || (represent == 'S'))
@@ -3164,7 +3195,7 @@ public:
 				}
 			}
 			
-			window.clear(sf::Color::White);
+			window.clear();
 			window.draw(prompt);
 			window.display();
 		}
@@ -3287,7 +3318,7 @@ public:
 				buying=false;
 			}
 			
-			window.clear(sf::Color::White);
+			window.clear();
 			window.draw(prompt);
 			window.display();
 		}
@@ -3416,7 +3447,7 @@ public:
 				buying=false;
 			}
 			
-			window.clear(sf::Color::White);
+			window.clear();
 			window.draw(prompt);
 			window.display();
 		}
@@ -3426,9 +3457,10 @@ public:
 	
 	int num_btwn(int low=1, int high=10)	// move to rand_number class
 	{
-		unsigned seed = chrono::system_clock::now().time_since_epoch().count();
-		minstd_rand0 rand (seed);
-		return (rand() % (high - low + 1)) + low;
+// 		unsigned seed = chrono::system_clock::now().time_since_epoch().count();
+// 		minstd_rand0 rand (seed);
+// 		return (rand() % (high - low + 1)) + low;
+		return rand.number_btwn(low,high);
 	}
 	
 	int randcoor(int type,int sector) //TYPE: 0=y, 1=x; Sectors: 1=TL, 2=BR, 3=TR, 4=BL, 5=TC, 6=BC, 7=ML, 8=MR, 9=MC
@@ -3582,9 +3614,9 @@ public:
 	{
 		return turn % map.teams.size();
 	}
-	
-	int selectunitonscreen(sf::RenderWindow& window, bool showhp = false, int selection=0)	//	selection: 0=none ; 1=units that can attack ; 2=units that haven't moved ; 3=second movephasae
-	{								//use SFML text		(done)
+		
+	int selectunitonscreen(sf::RenderWindow& window, bool showhp = false, int selection=0,bool onlyenemies=false)
+	{//selection: 0=none ; 1=units that can attack ; 2=units that haven't moved ; 3=second movephasae
 		int player = turnmodnumarmies();
 		vector<int> unitsonscreen;
 		int enemies=0;
@@ -3603,44 +3635,59 @@ public:
 						finddefender(thispos,true,true);
 						if (defer_army!=player)
 						{
-							unitsonscreen.push_back(thispos);
-							enemies++;
-						}
-						else
-						{
-							if (selection==1)
+							if (onlyenemies)
 							{
-								if (defender.canstillatk())
+								if (map.terrainmap[j][k].gettestval()==0)
 								{
 									unitsonscreen.push_back(thispos);
-									numunits++;
-								}
-							}
-							else if (selection==2)
-							{
-								if (defender.getmovesleft()==defender.getstat(MOVE_S))
-								{
-									unitsonscreen.push_back(thispos);
-									numunits++;
-								}
-							}
-							else if (selection==3)
-							{
-								if (defender.getmovesleft() > 0)
-								{
-									unitsonscreen.push_back(thispos);
-									numunits++;
+									enemies++;
 								}
 							}
 							else
 							{
 								unitsonscreen.push_back(thispos);
-								numunits++;
+								enemies++;	
 							}
-							if (numunits==1)
+						}
+						else
+						{
+							if (!onlyenemies)
 							{
-								index=unitsonscreen.size()-1;
+								if (selection==1)
+								{
+									if (defender.canstillatk())
+									{
+										unitsonscreen.push_back(thispos);
+										numunits++;
+									}
+								}
+								else if (selection==2)
+								{
+									if (defender.getmovesleft()==defender.getstat(MOVE_S))
+									{
+										unitsonscreen.push_back(thispos);
+										numunits++;
+									}
+								}
+								else if (selection==3)
+								{
+									if (defender.getmovesleft() > 0)
+									{
+										unitsonscreen.push_back(thispos);
+										numunits++;
+									}
+								}
+								else
+								{
+									unitsonscreen.push_back(thispos);
+									numunits++;
+								}
+								if (numunits==1)
+								{
+									index=unitsonscreen.size()-1;
+								}
 							}
+
 						}
 					}
 				}
@@ -3648,7 +3695,7 @@ public:
 		}
 		char direction = 'e';
 		bool unf=true;
-		if (numunits==0)
+		if ( (numunits==0) && (!onlyenemies) )
 			return 0;
 		if (unitsonscreen.size()==0)
 			return 0;
@@ -3694,14 +3741,22 @@ public:
 				output += num2str(map.teams[player].getmoney());
 				output += " dollars. To purchase reinforcements, press 'b'.";
 			}
-			output += "\nPress the left and right arrows to cycle through units.\nPress enter to select unit.";
 			if (show_stats==false)
+			{
+				output += "\nUse the arrows to cycle through units. Press enter to select.";
 				output += "\nPress 'u' to view the stat-chart for all the units.";
+			}
 			else
 			{
 				output += "\n";
 				output += show_unit_stats();
 			}
+			
+			if (onlyenemies)
+			{
+				output = "Selecting Enemy unit to attack.\nUse arrow keys to choose, and enter to select.";
+			}
+			
 			if (showhp)
 			{
 				output += "\nThis ";
@@ -3726,6 +3781,7 @@ public:
 				}
 				output += "]";
 			}
+
 			sf::Text thistext(output,map.font,24);
 			thistext.setColor(map.teams[player].getColor());
 			map.setText(thistext);
@@ -3762,7 +3818,7 @@ public:
 						direction='b';
 					if (event.key.code == sf::Keyboard::Q)
 						direction='q';
-					if ( (event.key.code == sf::Keyboard::Return) || (event.key.code == sf::Keyboard::S) || (event.key.code == sf::Keyboard::Down) )
+					if ( (event.key.code == sf::Keyboard::Return) )
 						direction='s';
 				}
 			}
@@ -3790,30 +3846,32 @@ public:
 				unf=false;
 				return_val=0;
 			}
+			if ((direction=='s') && (onlyenemies))
+				unf=false;
 		}
 		finddefender(unitsonscreen[index],true,true);
 		map.setname(defender.getname());
 		map.set_start(defender.getycoor(),defender.getxcoor(),false);
 		return return_val;
 	}
-		
+	
 	string show_unit_stats()
 	{
 		string out;
 		out =  "Name & Char     | HP |Move|RNG |ATK |AAB |DEF |ADB |LOS |Cost|\n";
 		out += "----------------|----|----|----|----|----|----|----|----|----|\n";
-		out += "Scout:      'S' |  5 | 12 |  1 |  3 |  0 |  5 |  0 |  T |  50|\n";
+		out += "Scout:      'S' |  6 | 12 |  1 |  4 |  0 |  5 |  0 |  T |  50|\n";
 		out += "Swordsman:  'R' | 12 |  8 |  1 |  6 |  0 |  6 |  0 |  T | 100|\n";
 		out += "Halberdier: 'H' | 12 |  8 |  2 |  7 | -1 |  4 |  0 |  T | 100|\n";
-		out += "Axeman:     'X' | 15 |  7 |  1 |  8 |  0 |  3 |  0 |  T | 100|\n";
+		out += "Axeman:     'X' | 15 |  7 |  1 |  8 |  0 |  3 |  1 |  T | 100|\n";
 		out += "Archer:     'A' |  8 |  8 | 12 |  5 | -1 |  5 | -2 |  T | 150|\n";
-		out += "Mage:       'M' |  7 |  8 |  8 |  6 | -2 |  6 | -4 |  F | 150|\n";
-		out += "Swordmage:  'D' | 20 |  8 |  8 |  8 |  4 |  8 |  0 |  F | 500|\n";
-		out += "Knight:     'K' | 25 |  7 |  1 |  7 |  0 |  8 |  4 |  T | 500|\n";
-		out += "Wizard:     'W' | 10 |  8 | 12 | 10 | -2 |  8 | -3 |  F | 500|\n";
-		out += "Elf Archer: 'E' | 10 | 10 | 15 |  8 | -2 |  7 | -2 |  T | 500|\n";
-		out += "Berserker:  'B' | 30 | 10 |  1 | 16 |  0 |  0 |  2 |  T | 500|\n";
-		out += "Calvalry:   'C' | 25 | 15 |  2 | 10 |  0 |  5 |  0 |  T | 500|\n";
+		out += "Mage:       'M' |  7 |  8 |  8 |  6 | -2 |  7 | -3 |  F | 150|\n";
+		out += "Calvalry:   'C' | 20 | 15 |  2 |  8 |  0 |  5 |  2 |  T | 250|\n";
+		out += "Knight:     'K' | 25 |  7 |  1 |  7 |  0 |  8 |  4 |  T | 250|\n";
+		out += "Berserker:  'B' | 30 | 10 |  1 | 16 |  0 |  0 |  2 |  T | 300|\n";
+		out += "Wizard:     'W' | 14 |  8 | 12 | 10 | -2 |  8 | -3 |  F | 300|\n";
+		out += "Elf Archer: 'E' | 16 | 10 | 15 |  8 | -2 |  7 | -1 |  T | 350|\n";
+		out += "Swordmage:  'D' | 23 |  8 |  8 |  8 |  4 |  8 |  0 |  F | 350|\n";
 		out += "----------------|----|----|----|----|----|----|----|----|----|\n";
 		return out;
 	}
@@ -3911,98 +3969,101 @@ public:
 		
 		if (numatks>1)
 		{
-			output = prompt;
-			output += ", this ";
-			output += warrior.getname();
-			output += " has ";
-			output += num2str(numatks);
-			output += " possible attacks to make.\n";
-			output += "Please enter an integer corresping to which attack you want to make. [ 0 <= input <= ";
-			output += num2str(numatks);
-			output += " ]\n0 corresponds to not attacking this turn.";
-			map.mainText.setString(output);
-			map.drawtowindow(window);
-			
-			whichatk=-1;
-			while (whichatk==-1)
-			{
-				//cin >> whichatk;
-				sf::Event event;
-				while (window.pollEvent(event))
-				{
-					if (event.type == sf::Event::Closed)
-					{
-						bool quit = map.reallyquit();
-						if (quit)
-						{
-							window.close();
-							gameover=true;
-							return -1;
-						}
-					}
-					else if (event.type == sf::Event::KeyPressed)
-					{
-						if ( (event.key.code == sf::Keyboard::Num0) || (event.key.code == sf::Keyboard::Numpad0) )
-						{
-							whichatk=0;
-						}
-						else if ( (event.key.code == sf::Keyboard::Num1) || (event.key.code == sf::Keyboard::Numpad1) )
-						{
-							whichatk=1;
-						}
-						else if ( (event.key.code == sf::Keyboard::Num2) || (event.key.code == sf::Keyboard::Numpad2) )
-						{
-							whichatk=2;
-						}
-						else if ( (event.key.code == sf::Keyboard::Num3) || (event.key.code == sf::Keyboard::Numpad3) )
-						{
-							whichatk=3;
-						}
-						else if ( (event.key.code == sf::Keyboard::Num4) || (event.key.code == sf::Keyboard::Numpad4) )
-						{
-							whichatk=4;
-						}
-						else if ( (event.key.code == sf::Keyboard::Num5) || (event.key.code == sf::Keyboard::Numpad5) )
-						{
-							whichatk=5;
-						}
-						else if ( (event.key.code == sf::Keyboard::Num6) || (event.key.code == sf::Keyboard::Numpad6) )
-						{
-							whichatk=6;
-						}
-						else if ( (event.key.code == sf::Keyboard::Num7) || (event.key.code == sf::Keyboard::Numpad7) )
-						{
-							whichatk=7;
-						}
-						else if ( (event.key.code == sf::Keyboard::Num8) || (event.key.code == sf::Keyboard::Numpad8) )
-						{
-							whichatk=8;
-						}
-						else if ( (event.key.code == sf::Keyboard::Num9) || (event.key.code == sf::Keyboard::Numpad9) )
-						{
-							whichatk=9;
-						}
-					}
-				}
-				
-				if (whichatk==0)
-				{
-					map.resetspaces();
-					return 0;
-				}
-				whichatk=whichatk-1;
-				if (whichatk>=numatks)
-				{
-					whichatk=-1;
-				}
-				if (whichatk<0)
-				{
-					whichatk=-1;
-				}
-				
-				map.drawtowindow(window);
-			}
-			defendsqr=sqrs2atk[whichatk];
+			selectunitonscreen(window,true,0,true);
+			map.coors2pos(defender.getycoor(),defender.getxcoor());
+			defendsqr=map.postest;
+// 			output = prompt;
+// 			output += ", this ";
+// 			output += warrior.getname();
+// 			output += " has ";
+// 			output += num2str(numatks);
+// 			output += " possible attacks to make.\n";
+// 			output += "Please enter an integer corresping to which attack you want to make. [ 0 <= input <= ";
+// 			output += num2str(numatks);
+// 			output += " ]\n0 corresponds to not attacking this turn.";
+// 			map.mainText.setString(output);
+// 			map.drawtowindow(window);
+// 			
+// 			whichatk=-1;
+// 			while (whichatk==-1)
+// 			{
+// 				//cin >> whichatk;
+// 				sf::Event event;
+// 				while (window.pollEvent(event))
+// 				{
+// 					if (event.type == sf::Event::Closed)
+// 					{
+// 						bool quit = map.reallyquit();
+// 						if (quit)
+// 						{
+// 							window.close();
+// 							gameover=true;
+// 							return -1;
+// 						}
+// 					}
+// 					else if (event.type == sf::Event::KeyPressed)
+// 					{
+// 						if ( (event.key.code == sf::Keyboard::Num0) || (event.key.code == sf::Keyboard::Numpad0) )
+// 						{
+// 							whichatk=0;
+// 						}
+// 						else if ( (event.key.code == sf::Keyboard::Num1) || (event.key.code == sf::Keyboard::Numpad1) )
+// 						{
+// 							whichatk=1;
+// 						}
+// 						else if ( (event.key.code == sf::Keyboard::Num2) || (event.key.code == sf::Keyboard::Numpad2) )
+// 						{
+// 							whichatk=2;
+// 						}
+// 						else if ( (event.key.code == sf::Keyboard::Num3) || (event.key.code == sf::Keyboard::Numpad3) )
+// 						{
+// 							whichatk=3;
+// 						}
+// 						else if ( (event.key.code == sf::Keyboard::Num4) || (event.key.code == sf::Keyboard::Numpad4) )
+// 						{
+// 							whichatk=4;
+// 						}
+// 						else if ( (event.key.code == sf::Keyboard::Num5) || (event.key.code == sf::Keyboard::Numpad5) )
+// 						{
+// 							whichatk=5;
+// 						}
+// 						else if ( (event.key.code == sf::Keyboard::Num6) || (event.key.code == sf::Keyboard::Numpad6) )
+// 						{
+// 							whichatk=6;
+// 						}
+// 						else if ( (event.key.code == sf::Keyboard::Num7) || (event.key.code == sf::Keyboard::Numpad7) )
+// 						{
+// 							whichatk=7;
+// 						}
+// 						else if ( (event.key.code == sf::Keyboard::Num8) || (event.key.code == sf::Keyboard::Numpad8) )
+// 						{
+// 							whichatk=8;
+// 						}
+// 						else if ( (event.key.code == sf::Keyboard::Num9) || (event.key.code == sf::Keyboard::Numpad9) )
+// 						{
+// 							whichatk=9;
+// 						}
+// 					}
+// 				}
+// 				
+// 				if (whichatk==0)
+// 				{
+// 					map.resetspaces();
+// 					return 0;
+// 				}
+// 				whichatk=whichatk-1;
+// 				if (whichatk>=numatks)
+// 				{
+// 					whichatk=-1;
+// 				}
+// 				if (whichatk<0)
+// 				{
+// 					whichatk=-1;
+// 				}
+// 				
+// 				map.drawtowindow(window);
+// 			}
+// 			defendsqr=sqrs2atk[whichatk];
 		}
 		else if (numatks==1)
 		{
@@ -4145,7 +4206,7 @@ public:
 					window.close();
 			}
 			
-			window.clear(sf::Color::White);
+			window.clear();
 			window.draw(prompt);
 			window.display();
 		}

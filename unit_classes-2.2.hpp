@@ -23,6 +23,27 @@ class Elf_Archer;
 class Berserker;
 class Calvalry;
 
+class random_number
+{
+private:
+	unsigned seed;
+	minstd_rand0 rand;
+	
+public:
+	random_number()
+	{
+		seed = chrono::system_clock::now().time_since_epoch().count();
+		minstd_rand0 rand1 (seed);
+		rand=rand1;
+	}
+	
+		
+	int number_btwn(int low=1, int high=10)
+	{
+		return (rand() % (high - low + 1)) + low;
+	}
+};
+
 class Unit
 {
 protected:
@@ -42,8 +63,8 @@ protected:
 	int movesleft;
 	bool canattack;
 	string name;
-	sf::Sprite sprite;
-	
+	sf::Sprite sprite;	
+	random_number rand_num;
 public:
 	
 	friend class Scout;
@@ -287,9 +308,10 @@ public:
 
 	int num_btwn(int low=1, int high=10)
 	{
-		unsigned seed = chrono::system_clock::now().time_since_epoch().count();
-		minstd_rand0 rand (seed);
-		return (rand() % (high - low + 1)) + low;
+// 		unsigned seed = chrono::system_clock::now().time_since_epoch().count();
+// 		minstd_rand0 rand (seed);
+// 		return (rand() % (high - low + 1)) + low;
+		return rand_num.number_btwn(low,high);
 	}
 	
 	int rolld6()
@@ -366,11 +388,11 @@ public:
 	{
 		a.sprite.setTexture(texture);
 		a.sprite.setTextureRect(sf::IntRect(xval,32,32,32));
-		a.totalhp=5;
+		a.totalhp=6;
 		a.hp=a.totalhp;
 		a.move=12;
 		a.range=1;
-		a.atk=3;
+		a.atk=4;
 		a.def=5;
 		a.cost=50;
 		a.cutcorners=false;
@@ -529,7 +551,7 @@ public:
 		a.cutcorners=false;
 		a.lineofsight=true;
 		a.adjacentatkbonus=0;
-		a.adjacentdefbonus=0;
+		a.adjacentdefbonus=1;
 		a.xcoor=0;
 		a.ycoor=0;
 		a.type=3;
@@ -626,12 +648,12 @@ public:
 		a.move=8;
 		a.range=8;
 		a.atk=6;
-		a.def=6;
+		a.def=7;
 		a.cost=150;
 		a.cutcorners=false;
 		a.lineofsight=false;
 		a.adjacentatkbonus=-2;
-		a.adjacentdefbonus=-4;
+		a.adjacentdefbonus=-3;
 		a.xcoor=0;
 		a.ycoor=0;
 		a.type=5;
@@ -672,13 +694,13 @@ public:
 	{
 		a.sprite.setTexture(texture);
 		a.sprite.setTextureRect(sf::IntRect(xval,224,32,32));
-		a.totalhp=20;
+		a.totalhp=23;
 		a.hp=a.totalhp;
 		a.move=8;
 		a.range=8;
 		a.atk=8;
 		a.def=8;
-		a.cost=500;
+		a.cost=350;
 		a.cutcorners=true;
 		a.lineofsight=false;
 		a.adjacentatkbonus=4;
@@ -729,7 +751,7 @@ public:
 		a.range=1;
 		a.atk=7;
 		a.def=8;
-		a.cost=500;
+		a.cost=300;
 		a.cutcorners=false;
 		a.lineofsight=true;
 		a.adjacentatkbonus=0;
@@ -774,13 +796,13 @@ public:
 	{
 		a.sprite.setTexture(texture);
 		a.sprite.setTextureRect(sf::IntRect(xval,288,32,32));
-		a.totalhp=10;
+		a.totalhp=14;
 		a.hp=a.totalhp;
 		a.move=8;
 		a.range=12;
 		a.atk=10;
 		a.def=8;
-		a.cost=500;
+		a.cost=300;
 		a.cutcorners=false;
 		a.lineofsight=false;
 		a.adjacentatkbonus=-2;
@@ -825,17 +847,17 @@ public:
 	{
 		a.sprite.setTexture(texture);
 		a.sprite.setTextureRect(sf::IntRect(xval,320,32,32));
-		a.totalhp=10;
+		a.totalhp=16;
 		a.hp=a.totalhp;
 		a.move=10;
 		a.range=15;
 		a.atk=8;
 		a.def=7;
-		a.cost=500;
+		a.cost=350;
 		a.cutcorners=false;
 		a.lineofsight=true;
 		a.adjacentatkbonus=-2;
-		a.adjacentdefbonus=-2;
+		a.adjacentdefbonus=-1;
 		a.xcoor=0;
 		a.ycoor=0;
 		a.type=9;
@@ -882,7 +904,7 @@ public:
 		a.range=1;
 		a.atk=16;
 		a.def=0;
-		a.cost=500;
+		a.cost=300;
 		a.cutcorners=false;
 		a.lineofsight=true;
 		a.adjacentatkbonus=0;
@@ -927,17 +949,17 @@ public:
 	{
 		a.sprite.setTexture(texture);
 		a.sprite.setTextureRect(sf::IntRect(xval,384,32,32));
-		a.totalhp=25;
+		a.totalhp=20;
 		a.hp=a.totalhp;
 		a.move=15;
 		a.range=2;
 		a.atk=10;
 		a.def=5;
-		a.cost=500;
+		a.cost=250;
 		a.cutcorners=false;
 		a.lineofsight=true;
 		a.adjacentatkbonus=0;
-		a.adjacentdefbonus=0;
+		a.adjacentdefbonus=2;
 		a.xcoor=0;
 		a.ycoor=0;
 		a.type=11;
@@ -1036,7 +1058,7 @@ public:
 				}
 			}
 			
-			window.clear(sf::Color::White);
+			window.clear();
 			window.draw(prompt);
 			window.display();
 		}
@@ -1178,7 +1200,7 @@ public:
 		}
 		else
 		{
-			cout << "You do not have enough money left for that unit." << endl;
+//			cout << "You do not have enough money left for that unit." << endl;
 		}
 	}
 	
@@ -1220,7 +1242,7 @@ public:
 		}
 		else
 		{
-			cout << "You do not have enough money left for that unit" << endl;
+//			cout << "You do not have enough money left for that unit" << endl;
 		}
 	}
 	

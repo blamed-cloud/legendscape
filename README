@@ -1,15 +1,26 @@
 LEGENDSCAPE-README
 created by:     Denver Woodward
 
-------------
-DEPENDENCIES
-------------
+-------
+WINDOWS
+-------
+
+For Windows, all you need to do is run the executable 'Legendscape.exe'
+Although, you do need to make sure its in the same folder as the tileset and the font.
+
+--------------------
+DEPENDENCIES - Linux
+--------------------
 
 This game requires you to install SFML 2.1, which is available from: http://www.sfml-dev.org/download/sfml/2.1/
 
----------
-COMPILING
----------
+SFML can be kind of tricky to get working. It is available from the standard repositories (via apt-get on debian systems for example), but for me it only had 1.6
+To get it to work, I installed 1.6 through the repo's which gave me all the dependencies it needed, then installed SFML 2.1 into /usr/local/
+Then, I needed to delete the 1.6 linkers from /usr/lib/ so it would default to the 2.1 ones in /usr/local/lib/
+
+-----------------
+COMPILING - Linux
+-----------------
 
 On Linux, the command that I use is:
 	
@@ -47,20 +58,10 @@ Legendscape is a turn based strategy game where you buy units of different types
 Each time you play, the game will randomly generate a new map to play on.
 Below, I have a list of the different units and their stats, for reference.
 At the beginning of the game, you will select a couple of game options:
-1. Size of the Map
-        As of right now, this is acually a command-line argument:
-                $ legendscape-x.x
-                $ legendscape-x.x S
-                        both create a standard small map: 22 x 80
-                $ legendscape-x.x M
-                        creates a medium sized map: 30 x 100
-                $ legendscape-x.x L
-                        creates a large map: 46 x 196
-                $ legendscape-x.x Y X
-                        creates a custom map of: Y x X 
-        NOTE: if the map would be too large for the terminal window, it *should* shrink to fit the window.
-2. Number of players
+1. Number of players
         Select the number of players you want to use. As of right now, support for 2, 3, or 4 players is enabled.
+2. Size of the Map
+        S/M/L for small/medium/large
 3. Shroud on/off
         If shroud is on, players will start with most of the map a mystery, and it will be uncovered as they explore.
         If shroud is off, players know the terrain of the whole map from the start.
@@ -70,6 +71,10 @@ At the beginning of the game, you will select a couple of game options:
 5. Reinforcements on/off        * units purchased are placed next turn, not the turn they are bought
         If reinforcements are on, then players gain money from kills, and they can buy more units each turn (if they have the money)
         If reinforcements are off, then players cannot buy any more units.
+6. Money
+        For small maps, multiples of 100 in [1000,2000]
+        For medium maps, multiples of 100 in [1000,3000]
+        For large maps, multiples of 100 in [1000,4000]
 
 Then, each team buys units in order: 1.BLUE, 2.RED, 3.GREEN, 4.YELLOW
 Then, the game progresses in turns (in the same order as above) until one team is victorious.
@@ -106,23 +111,16 @@ LOS: Needs Line of Sight (for ranged attacks)
 
 Name & Char     | HP |Move|RNG |ATK |AAB |DEF |ADB |LOS |Cost|
 ----------------|----|----|----|----|----|----|----|----|----|
-Scout:      'S' |  5 | 12 |  1 |  3 |  0 |  5 |  0 |  T |  50|
+Scout:      'S' |  6 | 12 |  1 |  4 |  0 |  5 |  0 |  T |  50|
 Swordsman:  'R' | 12 |  8 |  1 |  6 |  0 |  6 |  0 |  T | 100|
 Halberdier: 'H' | 12 |  8 |  2 |  7 | -1 |  4 |  0 |  T | 100|
-Axeman:     'X' | 15 |  7 |  1 |  8 |  0 |  3 |  0 |  T | 100|
+Axeman:     'X' | 15 |  7 |  1 |  8 |  0 |  3 |  1 |  T | 100|
 Archer:     'A' |  8 |  8 | 12 |  5 | -1 |  5 | -2 |  T | 150|
-Mage:       'M' |  7 |  8 |  8 |  6 | -2 |  6 | -4 |  F | 150|
-Swordmage:  'D' | 20 |  8 |  8 |  8 |  4 |  8 |  0 |  F | 500|
-Knight:     'K' | 25 |  7 |  1 |  7 |  0 |  8 |  4 |  T | 500|
-Wizard:     'W' | 10 |  8 | 12 | 10 | -2 |  8 | -3 |  F | 500|
-Elf Archer: 'E' | 10 | 10 | 15 |  8 | -2 |  7 | -2 |  T | 500|
-Berserker:  'B' | 30 | 10 |  1 | 16 |  0 |  0 |  2 |  T | 500|
-Calvalry:   'C' | 25 | 15 |  2 | 10 |  0 |  5 |  0 |  T | 500|
+Mage:       'M' |  7 |  8 |  8 |  6 | -2 |  7 | -3 |  F | 150|
+Calvalry:   'C' | 20 | 15 |  2 |  8 |  0 |  5 |  2 |  T | 250|
+Knight:     'K' | 25 |  7 |  1 |  7 |  0 |  8 |  4 |  T | 250|
+Berserker:  'B' | 30 | 10 |  1 | 16 |  0 |  0 |  2 |  T | 300|
+Wizard:     'W' | 14 |  8 | 12 | 10 | -2 |  8 | -3 |  F | 300|
+Elf Archer: 'E' | 16 | 10 | 15 |  8 | -2 |  7 | -1 |  T | 350|
+Swordmage:  'D' | 23 |  8 |  8 |  8 |  4 |  8 |  0 |  F | 350|
 ----------------|----|----|----|----|----|----|----|----|----|
-
-
-
-
-
-
-
