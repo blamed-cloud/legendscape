@@ -8,8 +8,8 @@
 #include <time.h>
 #include <cmath>
 
-#include "unit_classes-2.2.hpp"
-#include "terrainclasses-2.2.hpp"
+#include "unit_classes-2.3.hpp"
+#include "terrainclasses-2.3.hpp"
 
 #define HP_S 0
 #define ATK_S 1
@@ -2078,7 +2078,12 @@ public:
 		int dir4;
 		int drctn = 1;
 		test_dirs(1,1);
-		while ((xcoor != xstart) || (ycoor != ystart))
+		
+		coors2pos(ycoor,xcoor);
+		int coorpos=postest;
+		coors2pos(ystart,xstart);
+		int startpos=postest;
+		while (!is_adjacent(coorpos,startpos))	//	((xcoor != xstart) || (ycoor != ystart))
 		{
 			if (pos_dir[1] == 1)
 				dir1 = terrainmap[ycoor - 1][xcoor].gettestval();
@@ -2121,7 +2126,12 @@ public:
 			}
 			test_dirs(1,1);
 			if (pos_dir[0] == 0)
-				ycoor = ystart, xcoor = xstart;
+			{
+				ycoor = ystart+1;
+				xcoor = xstart;
+			}
+			coors2pos(ycoor,xcoor);
+			coorpos=postest;
 		}
 		xcoor = xstart;
 		ycoor = ystart;
@@ -2201,6 +2211,7 @@ public:
 			}
 		}
 		vector<int> connects = contiguoussubset(squares);
+		resetspaces(900);
 		for (int c = 0 ; c < squares.size() ; c++ )
 		{
 			pos2coors(squares[c]);
@@ -2209,7 +2220,7 @@ public:
 		
 	}
 	
-	int moveablesqrs(int y, int x, int move, int flying=false)
+	int moveablesqrs(int y, int x, int move, int flying=false, bool onlyempty=false)
 	{
 		if (flying)
 		{
@@ -2258,10 +2269,13 @@ public:
 					}
 					else
 					{
-						coors2pos(y0,x0);
-						if (teams.pos_is_friend(postest))
+						if (!onlyempty)
 						{
-							possiblemoves.push_back(postest);
+							coors2pos(y0,x0);
+							if (teams.pos_is_friend(postest))
+							{
+								possiblemoves.push_back(postest);
+							}
 						}
 					}
 				}
@@ -2973,6 +2987,28 @@ public:
 		}
 	}
 	
+	void resetNonEmpty()
+	{
+		for ( int j = 0 ; j < rows ; j++ )
+		{
+			for ( int k = 0 ; k < cols ; k++)
+			{
+				terrainmap[j][k].setempty(true);
+			}
+		}
+		for ( int k = 0 ; k < teams.size() ; k++)
+		{
+			for ( int c = 0 ; c < teams[k].size() ; c++)
+			{
+				Unit a = teams[k].getunit(c);
+				if (a.isalive())
+				{
+					terrainmap[a.getycoor()][a.getxcoor()].setempty(false);
+				}
+			}
+		}
+	}
+	
 	void setatkphase(bool flag)
 	{
 		atkphase=flag;
@@ -3003,10 +3039,12 @@ protected:
 	vector<sf::Color> sfColors;
 	bool gameover;
 	random_number rand;
+	bool computerstacked;
 public:
-	Battlefield(sf::RenderWindow& window,int ysize=80, int xsize=22, int num_armies=2, int funds=2000,bool shroud=true, bool fog=true, bool moreunits=false,int num_humans=-1)
+	Battlefield(sf::RenderWindow& window,int ysize=80, int xsize=22, int num_armies=2, int funds=2000,bool shroud=true, bool fog=true, bool moreunits=false,int num_humans=2)
 	{
 		gameover=false;
+		computerstacked=false;
 		numarmies=num_armies;
 		turn=0;
 		atker_army=0;
@@ -3030,21 +3068,29 @@ public:
 			if (!gameover)
 			{
 				string leader=colornames[j] + " Team Leader";
-				temparmy = Army(funds);
-				temparmy.setColor(sfColors[j]);
-				int test = temparmy.setpass(window,map.font);
-				if (test == -1)
+				if (j <= num_humans-1)
 				{
-					gameover=true;
+					temparmy = Army(funds);
+					temparmy.setColor(sfColors[j]);
+					int test = temparmy.setpass(window,map.font);
+					if (test == -1)
+					{
+						gameover=true;
+					}
+					else
+					{
+						temparmy = buildarmy(window,temparmy,leader);	
+					}
 				}
 				else
 				{
-					temparmy = buildarmy(window,temparmy,leader);
-					unitsleftperteam.push_back(temparmy.size());
-					map.teams.add_army(temparmy);
+					temparmy = Army(funds,true);
+					temparmy.setColor(sfColors[j]);
+					temparmy = compbuildarmy(temparmy);
 				}
+				unitsleftperteam.push_back(temparmy.size());
+				map.teams.add_army(temparmy);
 			}
-
 		}
 		placeunits();
 		resetall();
@@ -3321,6 +3367,38 @@ public:
 			window.clear();
 			window.draw(prompt);
 			window.display();
+		}
+		return team;
+	}
+	
+	Army compbuildarmy(Army team)
+	{
+		char choice;
+		bool buying=true;
+		int count = 0;
+		int index = 0;
+		int num_bought=0;
+		string allpossible = "SSRRHHHXXXAMKKBBEWDDCC";
+		while (buying)
+		{
+			choice=' ';
+			index=rand.number_btwn(0,allpossible.size()-1);
+			choice=allpossible[index];
+			if (is_unit_char(choice))
+			{
+				char2unit(choice,team.getColor());
+				warrior.resetsight();
+				team.buyunit(warrior);
+				num_bought++;
+				if ((team.getmoney() < 50) || (team.size() == team.maxsize()))
+				{
+					buying=false;
+				}
+			}
+			else if ((choice=='q') && (num_bought>0))
+			{
+				buying=false;
+			}
 		}
 		return team;
 	}
@@ -3614,9 +3692,10 @@ public:
 	{
 		return turn % map.teams.size();
 	}
-		
+	
 	int selectunitonscreen(sf::RenderWindow& window, bool showhp = false, int selection=0,bool onlyenemies=false)
 	{//selection: 0=none ; 1=units that can attack ; 2=units that haven't moved ; 3=second movephasae
+		map.resetNonEmpty();
 		int player = turnmodnumarmies();
 		vector<int> unitsonscreen;
 		int enemies=0;
@@ -3867,7 +3946,7 @@ public:
 		out += "Archer:     'A' |  8 |  8 | 12 |  5 | -1 |  5 | -2 |  T | 150|\n";
 		out += "Mage:       'M' |  7 |  8 |  8 |  6 | -2 |  7 | -3 |  F | 150|\n";
 		out += "Calvalry:   'C' | 20 | 15 |  2 |  8 |  0 |  5 |  2 |  T | 250|\n";
-		out += "Knight:     'K' | 25 |  7 |  1 |  7 |  0 |  8 |  4 |  T | 250|\n";
+		out += "Knight:     'K' | 25 |  7 |  1 |  7 |  0 |  8 |  4 |  T | 300|\n";
 		out += "Berserker:  'B' | 30 | 10 |  1 | 16 |  0 |  0 |  2 |  T | 300|\n";
 		out += "Wizard:     'W' | 14 |  8 | 12 | 10 | -2 |  8 | -3 |  F | 300|\n";
 		out += "Elf Archer: 'E' | 16 | 10 | 15 |  8 | -2 |  7 | -1 |  T | 350|\n";
@@ -3922,6 +4001,32 @@ public:
 			}
 		}
 		return -1;
+	}
+	
+	Unit findcompdefender(int pos, bool setvals = true, bool same_team=false)
+	{
+		int kmine = turnmodnumarmies();
+		Unit compdefender;
+		for (int kcomp = 0 ; kcomp < map.teams.size() ; kcomp++)
+		{
+			if ( ( (same_team) || ( (!same_team) && (kcomp!=kmine) ) ) && (map.teams[kcomp].isplaying()) )
+			{
+				for (int ccomp = 0 ; ccomp < map.teams[kcomp].size() ; ccomp++)
+				{
+					compdefender = map.teams.getarmyunit(kcomp,ccomp);
+					map.coors2pos(compdefender.getycoor(),compdefender.getxcoor());
+					if ((pos==map.postest) && (compdefender.isalive()))
+					{
+						defer_army=kcomp;
+						defer_unit=ccomp;
+						return compdefender;
+					}
+				}	
+			}
+		}
+		Unit temp1;
+		temp1.setrepr('Q');
+		return temp1;
 	}
 	
 	int atkwithunit(sf::RenderWindow& window, int k, int c)		//use SFML text		(done)
@@ -4239,6 +4344,12 @@ public:
 		resetall();
 		for ( int k = 0 ; k < map.teams.size() ; k++)
 		{
+			map.team_val=k;
+			Unit temp;
+			warrior=temp;
+			defender=temp;
+			map.player=temp;
+			map.resetspaces();
 			if (gameover)
 			{
 				return -1;
@@ -4252,38 +4363,52 @@ public:
 					team.sendinreinforcements();
 					map.teams.setarmy(team,k);
 				}
-//					map.teams[k].sendinreinforcements();
-				leader=getleadername(k);
-				bool unf=true;
-				bool pass=false;
-				while (unf)
+				//if computer
+				if (map.teams[k].iscomputer())
 				{
-					string output = leader;
-					output += ", it is your turn.\nPlease enter your password to begin your turn: (it will not show up)";
-					check=passwordentry(window,output,map.teams[k].getColor());
+					computermovephase();
+					computeratkphase();
+					endphase();
+					if (wincondition==0)
+					{
+						computermovephase();
+					}
+				}
+				else	//if human
+				{
+					leader=getleadername(k);
+					bool unf=true;
+					bool pass=false;
+					while (unf)
+					{
+						string output = leader;
+						output += ", it is your turn.\nPlease enter your password to begin your turn: (it will not show up)";
+						check=passwordentry(window,output,map.teams[k].getColor());
+						if (gameover)
+						{
+							return -1;
+						}
+						pass=map.teams[k].checkpass(check);
+						if (pass)
+							unf=false;
+					}
+					movephase(window);
 					if (gameover)
 					{
 						return -1;
 					}
-					pass=map.teams[k].checkpass(check);
-					if (pass)
-						unf=false;
+					attackphase(window);
+					if (gameover)
+					{
+						return -1;
+					}
+					endphase();
+					if (wincondition==0)
+					{
+						movephase(window,false);
+					}					
 				}
-				movephase(window);
-				if (gameover)
-				{
-					return -1;
-				}
-				attackphase(window);
-				if (gameover)
-				{
-					return -1;
-				}
-				endphase();
-				if (wincondition==0)
-				{
-					movephase(window,false);
-				}
+
 			}
 			turn++;
 		}
@@ -4306,6 +4431,29 @@ public:
 		{
 			return false;
 		}
+	}
+	
+	Unit computerdoattack(Unit atk, Unit def)
+	{
+		int atknum=0;
+		int defnum=0;
+		if (areadj(atk,def))
+		{
+			atknum=atk.rollatkdice(atk.getstat(ATK_S)+atk.getadjatkbonus());
+			defnum=def.rolldefdice(def.getstat(DEF_S)+def.getadjdefbonus());
+		}
+		else
+		{
+			atknum=atk.myatkdice();
+			defnum=def.mydefdice();
+		}
+		int damage = atknum - defnum;
+		atk.unsetattack();
+		if (damage > 0)
+		{
+			def.dodamage(damage);
+		}
+		return def;
 	}
 	
 	bool doattack(sf::RenderWindow& window)			//use SFML text		(done)
@@ -4409,63 +4557,352 @@ public:
 		return defender.isdead();
 	}
 	
-	void computermove()
+	int computersnextsqr(Unit unitA)
 	{
-		int k = turnmodnumarmies();
-		map.team_val=k;
+		map.resetNonEmpty();
 		setfriendpos();
+		map.updatesight();
+		map.coors2pos(map.ycoor,map.xcoor);
+		int thispos = map.postest;
+		vector<int> target_sqrs;
+		int target=-1;
 		int ymove=-1;
 		int xmove=-1;
-		for (int c = 0 ; c < map.teams[k].size() ; c++ )
+		//define the squares that the unit can move to
+		map.resetspaces();
+		map.moveablesqrs(unitA.getycoor(),unitA.getxcoor(),unitA.getstat(MOVE_S),false,true);
+		int which_computer = turnmodnumarmies();
+		// find an enemy unit in sight
+		for (int i = 0 ; i < map.rows ; i++)
 		{
-			warrior=map.teams[k].getunit(c);
-			if ((warrior.isalive()) && (warrior.getmovesleft() > 0))
+			for (int j = 0 ; j < map.cols ; j++)
 			{
-				map.setname(warrior.getname());
-				map.set_start(warrior.getycoor(),warrior.getxcoor(),false);
-				map.setmaxsteps(warrior.getstat(MOVE_S));
-				map.moveablesqrs(warrior.getycoor(),warrior.getxcoor(),warrior.getstat(MOVE_S));
-				int target=-1;
-				for (int i = 0 ; i < map.rows ; i++)	// find an enemy unit in move range
+				if ( (!map.terrainmap[i][j].isempty()) && (map.terrainmap[i][j].getarmysight(which_computer)==0) )
 				{
-					for (int j = 0 ; j < map.cols ; j++)
+					map.coors2pos(i,j);
+					if (!isfriend(map.postest))
 					{
-						if ( (map.terrainmap[i][j].gettestval()==0) && (!map.terrainmap[i][j].isempty()) )
+						target_sqrs.push_back(map.postest);
+						if  ( (!computerstacked) && (map.is_adjacent(map.postest,thispos)))	//if the unit is already adjacent to an enemy, stop moving
 						{
-							map.coors2pos(i,j);
-							if (!isfriend(map.postest))
+							return -1;
+						}
+						
+					}
+				}
+			}
+		}
+		vector<int> distances;
+		// if there are units in sight
+		if (target_sqrs.size()!=0)
+		{
+			//find a unit in range
+			for (int c = 0 ; c < target_sqrs.size() ; c++)
+			{
+				map.pos2coors(target_sqrs[c]);
+				distances.push_back( map.abs(map.xcoor-map.xtest) + map.abs(map.ycoor-map.ytest) );
+				if (target==-1)
+				{
+					map.pos2coors(target_sqrs[c]);
+					int unitsqr = thispos;
+					map.xcoor = map.xtest;
+					map.ycoor = map.ytest;
+					map.test_dirs(0,1);
+					if (map.pos_dir[0] > 0)
+					{
+						if ( (map.pos_dir[1]==1) && (map.terrainmap[map.ycoor-1][map.xcoor].isempty()) )
+						{
+							map.coors2pos(map.ycoor-1, map.xcoor);
+							target=map.postest;
+						}
+						else if ( (map.pos_dir[2]==1) && (map.terrainmap[map.ycoor][map.xcoor+1].isempty()) )
+						{
+							map.coors2pos(map.ycoor, map.xcoor+1);
+							target=map.postest;
+						}
+						else if ( (map.pos_dir[3]==1) && (map.terrainmap[map.ycoor+1][map.xcoor].isempty()) )
+						{
+							map.coors2pos(map.ycoor+1, map.xcoor);
+							target=map.postest;
+						}
+						else if ( (map.pos_dir[4]==1) && (map.terrainmap[map.ycoor][map.xcoor-1].isempty()) )
+						{
+							map.coors2pos(map.ycoor, map.xcoor-1);
+							target=map.postest;
+						}
+					}			
+					map.pos2coors(unitsqr);
+					map.xcoor = map.xtest;
+					map.ycoor = map.ytest;
+				}
+			}
+			int small_dist=1000;
+			int new_dist=1000;
+			int c_val=0;
+			//if it didnt find a target sqr, move towards the closest unit.
+			if (target==-1)
+			{
+				//find closest target
+				for ( int c = 0 ; c < distances.size() ; c++)
+				{
+					if (distances[c] < small_dist)
+					{
+						small_dist = distances[c];
+						c_val = c;
+					}
+				}
+				int closest = target_sqrs[c_val];
+				map.pos2coors(closest);
+				int xclose = map.xtest;
+				int yclose = map.ytest;
+				int dist=0;
+				//find the square we can move to closest to the closest target
+				for (int j = 0 ; j < map.rows; j++)
+				{
+					for (int k = 0 ; k < map.cols ; k++ )
+					{
+						if ( (map.terrainmap[j][k].isempty()) && (map.terrainmap[j][k].gettestval()==0) )
+						{
+							dist = map.abs(xclose - k) + map.abs(yclose - j);
+							if ( dist < new_dist )
 							{
+								new_dist = dist;
+								map.coors2pos(j,k);
 								target=map.postest;
 							}
 						}
 					}
 				}
-				if (target!=-1)
-				{
-					for (int i = 0; i < map.rows ; i++)	// find an adjacent square next to enemy
-					{
-						for (int j = 0 ; j < map.cols ; j++)
-						{
-							if ( (map.terrainmap[i][j].gettestval()==0) && (map.terrainmap[i][j].isempty()) )
-							{
-								map.coors2pos(i,j);
-								if ( map.is_adjacent(target,map.postest) )
-								{
-									xmove=j;
-									ymove=i;
-								}
-							}
-						}	
-					}
-				}
-				else	//	find a good square to move to. (probably one closer to the center of the board)
-				{
-					
-				}
-				map.movesqrs2distnums(ymove,xmove);
-				
 			}
 		}
+		else	//	find a square to move to.
+		{
+			while (!unitA.hastarget())
+			{
+				int randx = rand.number_btwn(0,map.cols-1);
+				int randy = rand.number_btwn(0,map.rows-1);
+				if (map.terrainmap[randy][randx].gettestval()!=-1)
+				{
+					unitA.setxtarget(randx);
+					unitA.setytarget(randy);
+				}
+			}
+			int xclose = unitA.getxtarget();
+			int yclose = unitA.getytarget();
+			int dist=0;
+			int new_dist=1000;
+			for (int j = 0 ; j < map.rows; j++)
+			{
+				for (int k = 0 ; k < map.cols ; k++ )
+				{
+					if ( (map.terrainmap[j][k].isempty()) && (map.terrainmap[j][k].gettestval()==0) )
+					{
+						dist = map.abs(xclose - k) + map.abs(yclose - j);
+						if ( dist < new_dist )
+						{
+							new_dist = dist;
+							map.coors2pos(j,k);
+							target=map.postest;
+						}
+					}
+				}
+			}
+		}
+		map.pos2coors(target);
+		ymove=map.ytest;
+		xmove=map.xtest;
+		map.movesqrs2distnums(map.ycoor,map.xcoor);
+		map.make_path(map.ycoor,map.xcoor,ymove,xmove);
+		for ( int j = 0 ; j < map.rows ; j++ )
+		{
+			for ( int k = 0 ; k < map.cols ; k++ )
+			{
+				map.coors2pos(j,k);
+				if ( (map.terrainmap[j][k].gettestval()==0) && (map.is_adjacent(thispos,map.postest)) )
+				{
+					if (map.terrainmap[j][k].isempty())
+					{
+						computerstacked=false;
+						return map.postest;
+					}
+					else
+					{
+						if (unitA.getmovesleft()>1)
+						{
+							computerstacked=true;
+							return map.postest;
+						}
+					}
+				}
+			}
+		}
+		return -1;
+	}
+	
+	Unit movecomputerunit(Unit unitB)
+	{
+		bool unf=true;
+		int lastx=unitB.getxcoor();
+		int lasty=unitB.getycoor();
+		int moves = unitB.getmovesleft();
+		while (unf)
+		{
+			int sqr = computersnextsqr(unitB);
+			if (sqr == -1)
+			{
+				unf=false;
+			}
+			else
+			{
+				if (moves<=0)
+				{
+					unf=false;
+				}
+				else
+				{
+					map.pos2coors(sqr);
+					lastx = map.xtest;
+					lasty = map.ytest;
+//					warrior.setxcoor(map.xtest);
+//					warrior.setycoor(map.ytest);
+					map.xcoor = map.xtest;
+					map.ycoor = map.ytest;
+					moves--;
+				}
+			}
+		}
+		unitB.setxcoor(lastx);
+		unitB.setycoor(lasty);
+		unitB.setmovesleft(moves);
+		return unitB;
+	}
+	
+	void computermovephase()
+	{
+		int which_computer = turnmodnumarmies();
+		setfriendpos();
+		Unit warrior0;
+		Unit warrior1;
+		map.teams.setcurrentarmyval(which_computer);
+		for (int c0 = 0 ; c0 < map.teams[which_computer].size() ; c0++ )
+		{
+			Unit temp;
+			warrior=temp;
+			defender=temp;
+			map.player=temp;
+			map.unit_val=c0;
+			map.teams.setcurrentunitval(c0);
+			warrior0 = map.teams.getcurrentunit();
+			if ((warrior0.isalive()) && (warrior0.getmovesleft() > 0))
+			{
+				// set it as the unit's turn
+				map.setname(warrior0.getname());
+				map.set_start(warrior0.getycoor(),warrior0.getxcoor(),false);
+				map.setmaxsteps(warrior0.getstat(MOVE_S));
+				warrior1 = movecomputerunit(warrior0);
+				map.teams.setcurrentunit(warrior1);
+			}
+		}
+	}
+	
+	void computeratkphase()
+	{
+		int k0 = turnmodnumarmies();
+		map.setatkphase(true);
+		for (int c0 = 0 ; c0 < map.teams[k0].size() ; c0++)
+		{
+			Unit temp;
+			warrior=temp;
+			defender=temp;
+			map.player=temp;
+//			cout << "A-Before: " << map.teams.rollcalls() << endl;
+			computeratkwunit(k0,c0);
+//			cout << "A-After:  " << map.teams.rollcalls() << endl;
+		}
+		map.setatkphase(false);
+	}
+	
+	int computeratkwunit(const int k,const int c)
+	{
+		atker_army=k;
+		atker_unit=c;
+		map.teams.setcurrentarmyval(atker_army);
+		map.teams.setcurrentunitval(atker_unit);
+		map.resetNonEmpty();
+		vector<int> temp;
+		sqrs2atk = temp;
+		setfriendpos();
+		int numatks=0;
+		int whichatk=0;
+		int defendsqr=0;
+		Unit compwarrior;
+		Unit dfndr;
+//		cout << "Before first get: " << map.teams.rollcalls() << endl;
+		compwarrior = map.teams.getcurrentunit();
+//		cout << "The warrior's representation: " << compwarrior.getrepr() << endl;
+//		cout << "After first get:  " << map.teams.rollcalls() << endl;
+		if (!compwarrior.canstillatk())
+		{
+			return 0;
+		}
+		if (compwarrior.isdead())
+		{
+			return 0;
+		}
+		map.setname(compwarrior.getname());
+		map.set_start(compwarrior.getycoor(),compwarrior.getxcoor(),false);
+		map.attackablesqrs(compwarrior.getycoor(),compwarrior.getxcoor(),compwarrior.getstat(RANGE_S),compwarrior.needlineofsight());
+		for ( int c1 = 0 ; c1 < map.atksqrs.size() ; c1++ )
+		{
+			map.pos2coors(map.atksqrs[c1]);
+			if (!(map.terrainmap[map.ytest][map.xtest].isempty()))
+			{
+				if (!isfriend(map.atksqrs[c1]))
+				{
+					sqrs2atk.push_back(map.atksqrs[c1]);
+				}
+			}
+		}
+		numatks=sqrs2atk.size();
+		if (numatks==0)
+		{
+			return 0;
+		}
+		whichatk = rand.number_btwn(0,numatks-1);
+		defendsqr = sqrs2atk[whichatk];
+		compwarrior.setmovesleft(0);
+		compwarrior.unsetattack();
+		map.teams.setcurrentarmyval(k);
+		map.teams.setcurrentunitval(c);
+//		cout << "Before first set: " << map.teams.rollcalls() << endl;
+		map.teams.setcurrentunit(compwarrior);
+//		cout << "After first set:  " << map.teams.rollcalls() << endl;
+		dfndr = findcompdefender(defendsqr);
+//		cout << "The defender's representation: " << dfndr.getrepr() << endl;
+//		cout << "After second get: " << map.teams.rollcalls() << endl;
+		if (dfndr.getrepr() == 'Q')
+		{
+			return 0;
+		}
+		dfndr = computerdoattack(compwarrior,dfndr);
+		map.teams.setcurrentarmyval(defer_army);
+		map.teams.setcurrentunitval(defer_unit);
+//		cout << "Before Second set: " << map.teams.rollcalls() << endl;
+		map.teams.setcurrentunit(dfndr);
+//		cout << "After Second set:  " << map.teams.rollcalls() << endl;
+		if (dfndr.isdead())
+		{
+			map.terrainmap[dfndr.getycoor()][dfndr.getxcoor()].setempty(true);
+			map.teams.deadunitcleanup();
+			unitsleftperteam[defer_army]--;
+			int value = dfndr.getcost();
+			int reward = rand.number_btwn(ceil(value * 0.05),floor(value * 0.30));
+			Army team = map.teams[k];
+			team.add_money(reward);
+			map.teams.setarmy(team,k);
+		}
+		map.resetspaces();
+		return 1;
 	}
 	
 	int movephase(sf::RenderWindow& window, bool first=true)

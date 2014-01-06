@@ -1,5 +1,6 @@
 LEGENDSCAPE-README
 created by:     Denver Woodward
+artwork by:     Colin Wolfe
 
 -------
 WINDOWS
@@ -7,6 +8,12 @@ WINDOWS
 
 For Windows, all you need to do is run the executable 'Legendscape.exe'
 Although, you do need to make sure its in the same folder as the tileset and the font.
+
+-----------
+Linux & Mac
+-----------
+
+If you either don't know how, or don't want to compile from source, you should be able to run the windows exe in wine, and that should work just fine.
 
 --------------------
 DEPENDENCIES - Linux
@@ -59,7 +66,10 @@ Each time you play, the game will randomly generate a new map to play on.
 Below, I have a list of the different units and their stats, for reference.
 At the beginning of the game, you will select a couple of game options:
 1. Number of players
-        Select the number of players you want to use. As of right now, support for 2, 3, or 4 players is enabled.
+        Select the number of players you want to use. As of right now, support for 1, 2, 3, or 4 players is enabled.
+2. Number of computer players
+        Select the number of computers you want to play against.
+        Note that this will take away slots for human players, not add more computers.
 2. Size of the Map
         S/M/L for small/medium/large
 3. Shroud on/off

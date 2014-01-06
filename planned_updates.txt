@@ -5,25 +5,37 @@ Stuff to consider adding to legendscape:        (*: marks a neccesary update)   
 +       -view the units hp (theirs, and the opponents that they know about)
 +       -view the base stats of all units, as well as what natures do
 +       -buy more units (when that gets implemented) (units would appear the next turn, not the turn they are purchased)
-*   -an AI (for computer opponents, or randomly spawned aggressive monsters)
++   -an AI (for computer opponents, or randomly spawned aggressive monsters)
 +   -graphical display
     -flanking bonus
     -Different Wizard types:
         -fire
+            -chance to set enemies on fire for damage over time
+            -heals in snow, ice, or water, or after 3-10 turns
         -lighting
+            -chance to chain damage to nearby enemies
         -ice
-        -illusionist ???
+            -chance to freeze enemies so they cannot move, attack, or be attacked
+            -lasts for 1-4 turns
+        -illusionist
             -conjures fake units:
                 -max of 5 units at a time
                 -apparitions have decent attack, avg move, 1 range, and crappy hp and def
                 -apparitions take the form of a random unit
                 -can only move 2 apparitions per turn, and only attack with 1
+        -zone control
+           -pushes enemy units as well as doing damage
+        -poison smoke
+            -can create poison clouds that act as fog of war, and deals damage to units in them
+            -also has normal attack
     -new units:
         -siege units: (can attack walls)
             -catapult
             -ballista
             -trebuchet
         -suicide bomber
+        -horse archer
+        -ninja (possible evasion ability: either need to be adjacent to atk it, or one shield will block non-adj attacks, also stealth like the theif)
         -shield wall    (lots of defense, possible counter-striking ability, maybe block line of sight)
         -thief (loots more money from chests, maybe pickpocket enemies, and can go stealth mode)
         -larger/flying units:
@@ -52,15 +64,17 @@ Stuff to consider adding to legendscape:        (*: marks a neccesary update)   
             -king defense: teams would have a king-unit that is stronger, but if it dies, you lose the game.
             -undead horde: player in castle, player (or computer) in graveyard with necromancer.
             -ritual: one player is trying to complete a ritual, the other team is trying to stop them.
-    -new terrain: (number in paren's is move cost)
-        -forest(2)
-        -rocky(1)
-        -desert/sand(2)
-        -water(**) (**: movement stops upon entering)
-        -swamp(3)   (random chance of spawning a pre-existing dead body for necromancer)
-        -plains(1)
-        -lava(**) & lava stone(1)
-        -snow(2) & ice(3)
+*   -new terrain: (move cost ; atk bonus ; def bonus ; move bonus (origin square only))
+        -forest       ( 3 ;  0 ;  2 ;  0)
+        -rocky        ( 1 ;  0 ;  1 ;  1)
+        -desert/sand  ( 2 ;  1 ;  0 ;  0)
+        -water        (** ; -2 ; -2 ;  0) (**: movement stops upon entering)
+        -swamp        ( 2 ;  2 ; -1 ; -1) (random chance of spawning a pre-existing dead body for necromancer)
+        -plains       ( 1 ;  0 ;  0 ;  2)
+        -lava         (** ;  0 ;  0 ;  0) (good chance of killing any unit that falls in here)
+        -lava stone   ( 1 ;  1 ;  0 ;  0) (chance of doing damage to units on square)
+        -snow         ( 2 ;  0 ;  0 ;  0)
+        -ice          ( 3 ; -1 ; -1 ;  0)
         -terrain height and height adv.
     -races:                                 (ALL STATS CHANGES ARE SUBJECT TO CHANGE)    (MINIMUM STATS: HP:5, MOVE:5, RANGE:1, ATK:1, DEF:0, COST:25)
         -dwarf         (key unit: axeman)

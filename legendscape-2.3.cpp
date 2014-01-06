@@ -5,7 +5,7 @@
 #include <sstream>
 
 //#include "unit_classes.h"
-#include "maze_classes-2.2.hpp"
+#include "maze_classes-2.3.hpp"
 using namespace std;
 
 string num2str(int num)
@@ -28,7 +28,7 @@ int main()
 	window.setKeyRepeatEnabled(false);
 	sf::Font font;
 	font.loadFromFile("DroidSansMono.ttf");
-	sf::Text words("Welcome to Legendscape!\nHow many players are there? [2-4]",font,32);
+	sf::Text words("Welcome to Legendscape!\nHow many Human players are there? [1-4]",font,32);
 	words.setColor(sf::Color::White);
 	while (players==0)
 	{
@@ -42,7 +42,11 @@ int main()
 			}
 			else if (event.type == sf::Event::KeyPressed)
 			{
-				if ( (event.key.code == sf::Keyboard::Num2) || (event.key.code == sf::Keyboard::Numpad2) )
+				if ( (event.key.code == sf::Keyboard::Num1) || (event.key.code == sf::Keyboard::Numpad1) )
+				{
+					players=1;
+				}
+				else if ( (event.key.code == sf::Keyboard::Num2) || (event.key.code == sf::Keyboard::Numpad2) )
 				{
 					players=2;
 				}
@@ -61,16 +65,92 @@ int main()
 		window.draw(words);
 		window.display();
 	}
+	
+	int maxcomputers = 4-players;
+	int numcomputers=0;
 	string output = words.getString();
-	stringstream strstm;
-	strstm << players;
 	int size=0;
 	output += "\n";
-	output += strstm.str();
+	output += num2str(players);
+	bool notchanged=true;
+	int mincomputers=0;
+	if (maxcomputers!=0)
+	{
+		if (players==1)
+		{
+			output += "\nHow Many computers do you want to play against? [1-3]";
+			mincomputers=1;
+		}
+		else
+		{
+			output += "\nHow Many computers do you want to play against? [0-";
+			output += num2str(maxcomputers);
+			output += "]";
+			mincomputers=0;
+		}
+		words.setString(output);
+		while (notchanged)
+		{
+			sf::Event event;
+			while (window.pollEvent(event))
+			{
+				if (event.type==sf::Event::Closed)
+				{
+					window.close();
+					return -1;
+				}
+				else if (event.type == sf::Event::KeyPressed)
+				{
+					if ( (event.key.code == sf::Keyboard::Num0) || (event.key.code == sf::Keyboard::Numpad0) )
+					{
+						if (mincomputers == 0)
+						{
+							numcomputers=0;
+							notchanged=false;
+						}
+					}
+					else if ( (event.key.code == sf::Keyboard::Num1) || (event.key.code == sf::Keyboard::Numpad1) )
+					{
+						if (maxcomputers >= 1)
+						{
+							numcomputers=1;
+							notchanged=false;
+						}
+					}
+					else if ( (event.key.code == sf::Keyboard::Num2) || (event.key.code == sf::Keyboard::Numpad2) )
+					{
+						if (maxcomputers >= 2)
+						{
+							numcomputers=2;
+							notchanged=false;
+						}
+					}
+					else if ( (event.key.code == sf::Keyboard::Num3) || (event.key.code == sf::Keyboard::Numpad3) )
+					{
+						if (maxcomputers >= 3)
+						{
+							numcomputers=3;
+							notchanged=false;
+						}
+					}
+				}
+			}
+			
+			window.clear();
+			window.draw(words);
+			window.display();
+		}
+		output += "\n";
+		output += num2str(numcomputers);		
+	}
+	else
+	{
+		output += "You will be playing without any computer opponents.";
+	}
 	output += "\nWhat map size do you want? [S/M/L]";
 	words.setString(output);
 	string key;
-	bool notchanged=true;
+	notchanged=true;
 	while (notchanged)
 	{
 		sf::Event event;
@@ -303,7 +383,7 @@ int main()
 	
 	window.setKeyRepeatEnabled(false);
 	
-	Battlefield steve(window, row1, col1, players, money, shroud, foggy, units);
+	Battlefield steve(window, row1, col1, players+numcomputers, money, shroud, foggy, units,players);
 	steve.playthegame(window);
 	return 0;
 }

@@ -55,6 +55,7 @@ protected:
 	int adjacentatkbonus;
 	int adjacentdefbonus;
 	int xcoor,ycoor;
+	int xtarget,ytarget;
 	int hp;
 	int type;
 	int tier;
@@ -97,6 +98,8 @@ public:
 		adjacentatkbonus=0;
 		xcoor=0;
 		ycoor=0;
+		xtarget=-1;
+		ytarget=-1;
 		type=0;
 		tier=0;
 		dead=false;
@@ -105,6 +108,34 @@ public:
 		name="Unit";
 	}
 
+	bool hastarget()
+	{
+		if (xtarget!=-1)
+			return true;
+		else
+			return false;
+	}
+	
+	int getxtarget()
+	{
+		return xtarget;
+	}
+	
+	int getytarget()
+	{
+		return ytarget;
+	}
+	
+	void setxtarget(int x)
+	{
+		xtarget=x;
+	}
+	
+	void setytarget(int y)
+	{
+		ytarget=y;
+	}
+	
 	sf::Sprite getSprite()
 	{
 		return sprite;
@@ -153,6 +184,11 @@ public:
 		return movesleft;
 	}
 	
+	void decrementmovesleft()
+	{
+		movesleft--;
+	}
+	
 	bool canstillatk()
 	{
 		return canattack;
@@ -185,6 +221,11 @@ public:
 	int getmapval()
 	{
 		return mapvalue;
+	}
+	
+	void setrepr(char rep)
+	{
+		repr=rep;
 	}
 	
 	char getrepr()
@@ -1152,7 +1193,7 @@ public:
 	string rollcall()
 	{
 		string str = "";
-		for ( int c = 0 ; c < num_units ; c++ )
+		for ( int c = 0 ; c < unitarray.size() ; c++ )
 		{
 			str = str + unitarray[c].getrepr();
 		}
@@ -1442,17 +1483,21 @@ public:
 	
 	void setarmyunit(Unit a,int k, int c)
 	{
-		armyarray[k].setunit(a,c);
+		Army team = armyarray[k];
+		team.setunit(a,c);
+		armyarray[k]=team;
 	}
 
 	Unit getcurrentunit()
 	{
 		return armyarray[current_team].getunit(current_unit);
 	}
-		
+	
 	void setcurrentunit(Unit a)
 	{
-		armyarray[current_team].setunit(a,current_unit);
+		Army team = armyarray[current_team];
+		team.setunit(a,current_unit);
+		armyarray[current_team]=team;
 	}
 	
 	Unit find_unit(int y, int x, bool setvalues=false)
@@ -1489,6 +1534,17 @@ public:
 			}
 		}
 		return false;
+	}
+	
+	string rollcalls()
+	{
+		string str="";
+		for ( int c = 0 ; c < armyarray.size() ; c++ )
+		{
+			str += armyarray[c].rollcall();
+			str += ";";
+		}
+		return str;
 	}
 	
 	void deadunitcleanup()
